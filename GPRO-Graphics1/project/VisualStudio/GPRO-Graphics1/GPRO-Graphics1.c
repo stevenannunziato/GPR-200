@@ -26,7 +26,7 @@
 */
 
 #include "gpro/gpro-math/gproVector.h"
-#include "GPRO-Graphics1.h"
+#include "image.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,18 +45,22 @@ void renderImage() {
 		fprintf(stderr, "\rScanlines remaining: %i \n", i);
 		fflush(stderr);
 		for (int j = 0; j < IMAGE_WIDTH; ++j) {
-			double r = (double)j / (IMAGE_WIDTH - 1);
-			double g = (double)i / (IMAGE_HEIGHT - 1);
-			double b = 0.25;
-
-			int jr = (int)(255.999 * r);
-			int jg = (int)(255.999 * g);
-			int jb = (int)(255.999 * b);
-
-			printf("%i %i %i\n", jr, jg, jb);
+			float r = (float)j / (IMAGE_WIDTH - 1);
+			float g = (float)i / (IMAGE_HEIGHT - 1);
+			float b = 0.25;
+			color pixelColor;
+			vec3init(pixelColor.v, r, g, b);
+			writeColor(pixelColor);
 		}
 	}
 	fprintf(stderr, "\nDone.\n");
 }
 
+void writeColor(color pixelColor)
+{
+	int jr = (int)(255.999 * pixelColor.v[0]);
+	int jg = (int)(255.999 * pixelColor.v[1]);
+	int jb = (int)(255.999 * pixelColor.v[2]);
 
+	printf("%i %i %i\n", jr, jg, jb);
+}

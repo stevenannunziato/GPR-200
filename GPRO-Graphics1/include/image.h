@@ -8,3 +8,4 @@ https ://raytracing.github.io/books/RayTracingInOneWeekend.html#overview
 */
 
 void renderImage();
+void writeColor(color pixelColor);

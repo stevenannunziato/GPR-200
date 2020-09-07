@@ -88,13 +88,6 @@ int main(int const argc, char const* const argv[])
 	}	
 #endif
 	
-	/*
-	// ways to print a vector
-	vec3 testVec;
-	vec3init(testVec.v, 1.0f, 2.0f, 3.0f);
-	printf("%f %f %f\n", testVec.x, testVec.y, testVec.z);
-	printf("%f %f %f\n", testVec.v[0], testVec.v[1], testVec.v[2]);
-	*/
 
 	renderImage();
 

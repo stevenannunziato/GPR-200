@@ -37,7 +37,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GPRO-Graphics1.cpp">
+    <ClCompile Include="GPRO-Graphics1.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

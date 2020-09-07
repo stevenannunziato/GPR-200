@@ -37,6 +37,8 @@ extern "C" {
 //		union vec3 someVector;
 //	-> this forward declaration makes the first way possible in both languages!
 typedef union vec3 vec3;
+typedef union vec3 point3;
+typedef union vec3 color;
 #endif	// __cplusplus
 
 
@@ -83,14 +85,27 @@ union vec3
 // DB: declare C functions (all equivalents of above C++ functions are here)
 //	-> return pointers so you can chain operations (they just take pointers)
 
+// utility functions for float3
 floatv vec3default(float3 v_out);	// default init
 floatv vec3init(float3 v_out, float const xc, float const yc, float const zc);	// init w floats
 floatv vec3copy(float3 v_out, float3 const v_rh);	// init w array of floats (same as assign and both copy ctors)
 
 floatv vec3add(float3 v_lh_sum, float3 const v_rh);	// add other to lh vector
+floatv vec3subtract(float3 v_lh_value, float3 const v_rh); // subtract v_rh from lh vector
 
 floatv vec3sum(float3 v_sum, float3 const v_lh, float3 const v_rh);	// get sum of lh and rh vector
 
+floatv vec3multiply(float3 v_out, float k); // multiply vector by a constant
+floatv vec3divide(float3 v_value, float k); // /= operator equivalent; divides vector by constant
+
+float lengthSquared(float3 v_value);
+float length(float3 v_value);
+
+// utility functions for vec3
+void vec3print(vec3 vec);
+float dot(const vec3 lhs, const vec3 rhs);
+vec3 cross(const vec3 lhs, const vec3 rhs);
+vec3 vec3unit(vec3 vec);
 
 #ifdef __cplusplus
 // DB: end C linkage for C++ symbols
