@@ -31,6 +31,7 @@
 
 
 #include "gpro/gpro-math/gproVector.h"
+#include "image.h"
 
 
 void testVector()
@@ -56,36 +57,46 @@ void testVector()
 }
 
 
+#ifdef __cplusplus
+// c++ file io includes
+#include <fstream>
+#include <string>
+#else 
+// c file io includes
+#include <stdio.h>
+#endif
+
+
 int main(int const argc, char const* const argv[])
 {
 	testVector();
 
-	const int IMAGE_WIDTH = 256;
-	const int IMAGE_HEIGHT = 256;
+	// HOW TO OPEN AND WRITE TO A FILE
+#ifdef __cplusplus
+	// c++ file io includes
+	std::ofstream file("file.txt");
+	std::string test = "hello";
+	file << test << std::endl;
+	file.close();
+#else 
+	// c file io includes
+	FILE* filePointer = fopen("test.txt", "w");	// open file for writing
+	if (filePointer) {
+		char* test = "hello";				// create string, could also do char test[] = "hello"
+		fprintf(filePointer, "%s\n", test);	// output string
+		fclose(filePointer);				// done, close file
+	}	
+#endif
+	
+	/*
+	// ways to print a vector
+	vec3 testVec;
+	vec3init(testVec.v, 1.0f, 2.0f, 3.0f);
+	printf("%f %f %f\n", testVec.x, testVec.y, testVec.z);
+	printf("%f %f %f\n", testVec.v[0], testVec.v[1], testVec.v[2]);
+	*/
 
-	// render image
-	// create ppm text file for the image
-	printf("P3\n%i %i\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT);
-
-	// create rgb values per pixel
-	for (int i = IMAGE_HEIGHT - 1; i >= 0; --i) {
-		// print progress indicator to the error output stream
-		fprintf(stderr, "\rScanlines remaining: %i \n", i);
-		fflush(stderr);
-		for (int j = 0; j < IMAGE_WIDTH; ++j) {
-			double r = (double)j / (IMAGE_WIDTH - 1);
-			double g = (double)i / (IMAGE_HEIGHT - 1);
-			double b = 0.25;
-
-			int jr = (int)(255.999 * r);
-			int jg = (int)(255.999 * g);
-			int jb = (int)(255.999 * b);
-
-			printf("%i %i %i\n", jr, jg, jb);
-		}
-	}
-	fprintf(stderr, "\nDone.\n");
-
+	renderImage();
 
 	printf("\n\n");
 	system("pause");

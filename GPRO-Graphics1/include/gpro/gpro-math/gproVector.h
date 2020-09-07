@@ -18,8 +18,8 @@
 	gproVector.h
 	Interface for vectors. Sets an example for C and C++ compatible headers.
 
-	Modified by: ____________
-	Modified because: ____________
+	Modified by: Steven Annunziato
+	Modified to add more comments and vector functions
 */
 
 #ifndef _GPRO_VECTOR_H_
@@ -29,7 +29,7 @@
 #ifdef __cplusplus
 // DB: link C++ symbols as if they are C where possible
 extern "C" {
-#else	// !__cplusplus
+#else	// !__cplusplus, using c
 // DB: forward declare C types... why?
 //	-> in C++ you would instantiate one of these like so: 
 //		vec3 someVector;
