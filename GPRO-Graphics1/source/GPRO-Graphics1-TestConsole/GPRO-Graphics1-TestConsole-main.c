@@ -19,7 +19,7 @@
 	Main entry point source file for a Windows console application.
 
 	Modified by: Steven Annunziato
-	Modified because: ____________
+	Modified to output various images found in Peter Shirley's Ray Tracing in One Weekend.
 
 	Modifications adapted from Peter Shirley's Ray Tracing in One Weekend.
 	https://raytracing.github.io/books/RayTracingInOneWeekend.html#overview
@@ -28,7 +28,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
 
 #include "gpro/gpro-math/gproVector.h"
 #include "image.h"

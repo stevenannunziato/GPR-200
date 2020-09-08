@@ -30,6 +30,9 @@
     <ClInclude Include="..\..\..\include\image.h">
       <Filter>Header Files\gpro</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\include\ray.h">
+      <Filter>Header Files\gpro</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\include\gpro\gpro-math\_inl\gproVector.inl">
@@ -38,6 +41,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GPRO-Graphics1.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ray.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

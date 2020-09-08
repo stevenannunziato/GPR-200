@@ -19,7 +19,9 @@
 	Interface for vectors. Sets an example for C and C++ compatible headers.
 
 	Modified by: Steven Annunziato
-	Modified to add more comments and vector functions
+	Modified to add more vector utility functions.
+	Modifications adapted from Peter Shirley's Ray Tracing in One Weekend.
+	https://raytracing.github.io/books/RayTracingInOneWeekend.html#overview
 */
 
 #ifndef _GPRO_VECTOR_H_

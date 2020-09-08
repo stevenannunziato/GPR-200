@@ -156,10 +156,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="GPRO-Graphics1.c" />
+    <ClCompile Include="ray.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\gpro\gpro-math\gproVector.h" />
     <ClInclude Include="..\..\..\include\image.h" />
+    <ClInclude Include="..\..\..\include\ray.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\include\gpro\gpro-math\_inl\gproVector.inl" />
