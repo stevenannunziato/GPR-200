@@ -10,16 +10,14 @@ https ://raytracing.github.io/books/RayTracingInOneWeekend.html#overview
 
 point3 at(ray ray, float t)
 {
-	// start with the origin
-	vec3 final;
-	vec3copy(final.v, ray.origin.v);
-
 	// get extended direction vector
 	vec3 dir;
-	vec3copy(dir.v, ray.direction.v);
-	vec3multiply(dir.v, t);
+	vec3init(dir.v, ray.direction.x * t, ray.direction.y * t, ray.direction.z * t);
 
-	vec3add(final.v, dir.v);
+	// create the final point and add direction
+	point3 newPoint;
+	vec3init(newPoint.v, ray.origin.x, ray.origin.y, ray.origin.z);
+	vec3add(newPoint.v, dir.v);
 
-	return final;
+	return newPoint;
 }

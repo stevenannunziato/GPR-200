@@ -86,13 +86,6 @@ inline floatv vec3init(float3 v_out, float const xc, float const yc, float const
 	v_out[2] = zc;
 	return v_out;
 }
-inline floatv vec3initpoint(float3 v_out, point3 p)
-{
-	v_out[0] = p.x;
-	v_out[1] = p.y;
-	v_out[2] = p.z;
-	return v_out;
-}
 inline floatv vec3copy(float3 v_out, float3 const v_rh)
 {
 	v_out[0] = v_rh[0];
