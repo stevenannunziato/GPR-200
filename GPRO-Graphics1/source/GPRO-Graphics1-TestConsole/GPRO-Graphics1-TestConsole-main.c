@@ -91,5 +91,4 @@ int main(int const argc, char const* const argv[])
 	renderImage();
 
 	printf("\n\n");
-	system("pause");
 }
