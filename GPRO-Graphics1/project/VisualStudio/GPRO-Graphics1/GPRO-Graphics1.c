@@ -82,7 +82,7 @@ void renderImage() {
 			float v = (float)i / (IMAGE_HEIGHT - 1);
 			// create the ray
 			ray r;
-			vec3init(r.origin.v, origin.x, origin.y, origin.z);
+			vec3copy(r.origin.v, origin.v);
 			vec3 direction;
 			vec3copy(direction.v, lower_left_corner.v);
 			vec3 multiplied_horizontal;
@@ -94,7 +94,7 @@ void renderImage() {
 			vec3add(direction.v, multiplied_horizontal.v);
 			vec3add(direction.v, multiplied_vertical.v);
 			vec3subtract(direction.v, origin.v);
-			vec3init(r.direction.v, direction.x, direction.y, direction.z);
+			vec3copy(r.direction.v, direction.v);
 
 			color pixelColor = rayColor(r);
 			writeColor(pixelColor);
@@ -113,18 +113,55 @@ void writeColor(color pixelColor)
 	printf("%i %i %i\n", jr, jg, jb);
 }
 
+// determine if a ray hits a given sphere
+float hitSphere(const point3 center, float radius, const ray r)
+{
+	vec3 oc;
+	vec3copy(oc.v, r.origin.v);
+	vec3subtract(oc.v, center.v);
+	float a = dot(r.direction, r.direction);
+	float b = 2.0f * dot(oc, r.direction);
+	float c = dot(oc, oc) - radius * radius;
+	float discriminant = b * b - 4 * a * c;
+	if (discriminant < 0.0f)
+	{
+		return -1.0f;
+	}
+	else
+	{
+		return (float)(-b - sqrt(discriminant)) / (2.0f * a);
+	}
+}
+
 color rayColor(const ray r)
 {
+	// color a sphere based on its surface normal
+	point3 origin;
+	vec3init(origin.v, 0.0f, 0.0f, -1.0f);
+	float t = hitSphere(origin, 0.5f, r);
+	if (t > -1.0)
+	{
+		// create normal vector for the sphere
+		vec3 normal;
+		vec3initpoint(normal.v, at(r, t));
+		vec3subtract(normal.v, origin.v);
+		normal = vec3unit(normal);
+		color sphereColor;
+		vec3init(sphereColor.v, normal.x + 1.0f, normal.y + 1.0f, normal.z + 1.0f);
+		vec3multiply(sphereColor.v, 0.5f);
+		return sphereColor;
+	}
+
 	// create a unit direction
 	vec3 unitDirection = vec3unit(r.direction);
-	float t = 0.5f * (unitDirection.y + 1.0f);
+	t = 0.5f * (unitDirection.y + 1.0f);
 
 	// calculate the final color
 	color finalColor;
 	vec3init(finalColor.v, 1.0f, 1.0f, 1.0f);
 	vec3multiply(finalColor.v, 1.0f - t);
 	color colorToAdd;
-	vec3init(colorToAdd.v, 1.0f, 1.0f, 0.5f);
+	vec3init(colorToAdd.v, 0.5f, 0.7f, 1.0f);
 	vec3multiply(colorToAdd.v, t);
 	vec3add(finalColor.v, colorToAdd.v);
 	return finalColor;
