@@ -114,7 +114,7 @@ void writeColor(color pixelColor)
 }
 
 // determine if a ray hits a given sphere
-bool hitSphere(const point3 center, float radius, const ray r)
+float hitSphere(const point3 center, float radius, const ray r)
 {
 	vec3 oc;
 	vec3copy(oc.v, r.origin.v);
@@ -123,15 +123,14 @@ bool hitSphere(const point3 center, float radius, const ray r)
 	float b = 2.0f * dot(oc, r.direction);
 	float c = dot(oc, oc) - radius * radius;
 	float discriminant = b * b - 4 * a * c;
-	return (discriminant > 0);
-	/*if (discriminant < 0.0f)
+	if (discriminant < 0.0f)
 	{
 		return -1.0f;
 	}
 	else
 	{
-		return (-b - (float)sqrt(discriminant)) / (2.0f * a);
-	}*/
+		return (float)(-b - sqrt(discriminant)) / (2.0f * a);
+	}
 }
 
 color rayColor(const ray r)
@@ -139,14 +138,10 @@ color rayColor(const ray r)
 	// color a sphere based on its surface normal
 	point3 origin;
 	vec3init(origin.v, 0.0f, 0.0f, -1.0f);
-	//float t = hitSphere(origin, 0.5f, r);
-	if (hitSphere(origin, 0.5f, r))
+	float t = hitSphere(origin, 0.5f, r);
+	if (t > -1.0)
 	{
-		color red;
-		vec3init(red.v, 1.0f, 0.0f, 0.0f);
-		return red;
-
-		/*// create normal vector for the sphere
+		// create normal vector for the sphere
 		vec3 normal;
 		vec3initpoint(normal.v, at(r, t));
 		vec3subtract(normal.v, origin.v);
@@ -154,12 +149,12 @@ color rayColor(const ray r)
 		color sphereColor;
 		vec3init(sphereColor.v, normal.x + 1.0f, normal.y + 1.0f, normal.z + 1.0f);
 		vec3multiply(sphereColor.v, 0.5f);
-		return sphereColor;*/
+		return sphereColor;
 	}
 
 	// create a unit direction
 	vec3 unitDirection = vec3unit(r.direction);
-	float t = 0.5f * (unitDirection.y + 1.0f);
+	t = 0.5f * (unitDirection.y + 1.0f);
 
 	// calculate the final color
 	color finalColor;

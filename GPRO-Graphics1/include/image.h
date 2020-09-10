@@ -13,4 +13,4 @@ https ://raytracing.github.io/books/RayTracingInOneWeekend.html#overview
 void renderImage();
 void writeColor(color pixelColor);
 color rayColor(const ray r);
-bool hitSphere(const point3 center, float radius, const ray r);
+float hitSphere(const point3 center, float radius, const ray r);
