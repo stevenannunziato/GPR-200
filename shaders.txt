@@ -51,7 +51,7 @@ vec4 myEffect2(in vec2 fragCoord, in vec2 resolution)
 {
     
     // modifiable properties
-    float circleSize = 3.0;
+    float circleSize = 5.0;
     float breatheAmount = 0.3;
     float colorIntensity = 0.5;
     float colorCycleSpeed = 1.0f;
@@ -68,9 +68,25 @@ vec4 myEffect2(in vec2 fragCoord, in vec2 resolution)
     float radius = 100.0 * (sin(iTime) + circleSize) * breatheAmount;
     float dist = distance(fragCoord, center);
     
+    // if we are inside the circle
     if (dist < radius) {
+        // create radial gradient
+        
+        // get value [0, 2] based on distance from center
+        float normalizedDistance = dist / radius * 2.0;
+        
+        // create a color based on this dist and the current color
+        vec3 extraColor = vec3(currentColor.x, complementaryColor.x, normalizedDistance);
+        
+        if (normalizedDistance < 1.0) { // inner gradient color band
+        	currentColor = mix(currentColor, extraColor, normalizedDistance);
+        }
+        else { // outer gradient color band
+            currentColor = mix(extraColor, complementaryColor, normalizedDistance - 1.0);
+        }
         myColor = vec4(currentColor, 1.0);
     }
+    // not in the circle
     else {
     	myColor = vec4(complementaryColor, 1.0);
     }
