@@ -15,11 +15,14 @@ vec4 myEffect0(in vec2 fragCoord, in vec2 resolution)
 // NOTE: this is likely very inefficient due to the amount of sin calls
 vec4 myEffect1(in vec2 fragCoord, in vec2 resolution)
 {
-    float widthModifier = 40.0;
+    // modifiable properties
+    float widthModifier = 5.0;
+    
+    // declare final color
     vec4 myColor;
     
-    // create horizontal lines across the screen
-    // if we are on the first set of rows:
+    // create imaginary horizontal lines across the screen
+    // if we are on the first set of imaginary rows:
     if (sin(fragCoord.y / widthModifier) > 0.0) {
         // create vertical lines of black and white
         if (sin(fragCoord.x / widthModifier) > 0.0) {
@@ -29,7 +32,7 @@ vec4 myEffect1(in vec2 fragCoord, in vec2 resolution)
             myColor = vec4(0.0, 0.0, 0.0, 0.0);
         }
     }
-    // if we are on the other set of rows:
+    // if we are on the other set of imaginary rows:
     else {
         // create vertical lines of black and white except opposite of the other rows
         if (sin(fragCoord.x / widthModifier) <= 0.0) {
@@ -43,11 +46,43 @@ vec4 myEffect1(in vec2 fragCoord, in vec2 resolution)
     return myColor;
 }
 
+// effect 2: breathing circle
+vec4 myEffect2(in vec2 fragCoord, in vec2 resolution)
+{
+    
+    // modifiable properties
+    float circleSize = 3.0;
+    float breatheAmount = 0.3;
+    float colorIntensity = 0.5;
+    float colorCycleSpeed = 1.0f;
+    
+    // declare final color and supporting colors
+    vec4 myColor;
+    vec3 currentColor = 0.5 + colorIntensity*cos(iTime*colorCycleSpeed+vec3(0,2,4));
+    vec3 complementaryColor = vec3(1.0, 1.0, 1.0) - currentColor;
+    
+    // find center coordinate of the screen
+    vec2 center = vec2(resolution / 2.0);
+    
+    // determine radius of the circle and distance from the center point
+    float radius = 100.0 * (sin(iTime) + circleSize) * breatheAmount;
+    float dist = distance(fragCoord, center);
+    
+    if (dist < radius) {
+        myColor = vec4(currentColor, 1.0);
+    }
+    else {
+    	myColor = vec4(complementaryColor, 1.0);
+    }
+    
+    return myColor;
+    
+}
+
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
  	
-    // RGBA [0, 1]
-    fragColor = myEffect1(fragCoord, iResolution.xy);
+    fragColor = myEffect2(fragCoord, iResolution.xy);
     
     /*
     // Normalized pixel coordinates (from 0 to 1)
