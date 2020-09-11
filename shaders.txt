@@ -1,3 +1,4 @@
+// effect 0: static gradient
 vec4 myEffect0(in vec2 fragCoord, in vec2 resolution)
 {
     
@@ -10,11 +11,43 @@ vec4 myEffect0(in vec2 fragCoord, in vec2 resolution)
     
 }
 
+// effect 1: static checkerboard
+// NOTE: this is likely very inefficient due to the amount of sin calls
+vec4 myEffect1(in vec2 fragCoord, in vec2 resolution)
+{
+    float widthModifier = 40.0;
+    vec4 myColor;
+    
+    // create horizontal lines across the screen
+    // if we are on the first set of rows:
+    if (sin(fragCoord.y / widthModifier) > 0.0) {
+        // create vertical lines of black and white
+        if (sin(fragCoord.x / widthModifier) > 0.0) {
+            myColor = vec4(1.0, 1.0, 1.0, 1.0);
+        }
+        else {
+            myColor = vec4(0.0, 0.0, 0.0, 0.0);
+        }
+    }
+    // if we are on the other set of rows:
+    else {
+        // create vertical lines of black and white except opposite of the other rows
+        if (sin(fragCoord.x / widthModifier) <= 0.0) {
+            myColor = vec4(1.0, 1.0, 1.0, 1.0);
+        }
+        else {
+            myColor = vec4(0.0, 0.0, 0.0, 0.0);
+        }
+    }
+    
+    return myColor;
+}
+
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
  	
     // RGBA [0, 1]
-    fragColor = myEffect0(fragCoord, iResolution.xy);
+    fragColor = myEffect1(fragCoord, iResolution.xy);
     
     /*
     // Normalized pixel coordinates (from 0 to 1)
