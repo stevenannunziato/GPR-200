@@ -158,11 +158,12 @@ vec4 myEffect2(in vec2 fragCoord, in vec2 resolution)
     float circleSize = 2.0;
     float breatheAmount = 0.65;
     float colorIntensity = 0.5;
-    float colorCycleSpeed = 1.0f;
+    float colorCycleSpeed = 0.1f;
     
     // declare final color and supporting colors
     vec4 myColor;
-    vec3 currentColor = 0.5 + colorIntensity*cos(iTime*colorCycleSpeed+vec3(0,2,4));
+    //vec3 currentColor = 0.5 + colorIntensity*cos(iTime*colorCycleSpeed+vec3(0,2,4));
+    vec3 currentColor = hueshift(vec3(1.0, 0.0, 0.0), fract(iTime * colorCycleSpeed));
     vec3 complementaryColor = vec3(1.0, 1.0, 1.0) - currentColor;
     
     // find center coordinate of the screen
@@ -180,7 +181,8 @@ vec4 myEffect2(in vec2 fragCoord, in vec2 resolution)
         float normalizedDistance = dist / radius * 2.0;
         
         // create a color based on this dist and the current color
-        vec3 extraColor = vec3(currentColor.x, complementaryColor.x, normalizedDistance);
+        //vec3 extraColor = vec3(currentColor.x, complementaryColor.x, normalizedDistance);
+        vec3 extraColor = hueshift(currentColor, 0.25);
         
         if (normalizedDistance < 1.0) { // inner gradient color band
         	currentColor = mix(currentColor, extraColor, normalizedDistance);
@@ -199,16 +201,45 @@ vec4 myEffect2(in vec2 fragCoord, in vec2 resolution)
     
 }
 
-// effect 3: art
+// effect 3: psychedelic spiral
+// method for creating a spiral sampled from user brainjam: https://stackoverflow.com/questions/4638317/how-to-implement-this-rotating-spiral-in-webgl
+// specifically, I referenced the method for determining angle and amod.
 vec4 myEffect3(in vec2 fragCoord, in vec2 resolution)
 {
+    vec3 myColor = vec3(1.0, 0.0, 0.0);
     
-    // R -> 0.8
-    // G -> horizontal
-    // b -> vertical
-    // a -> 1
-    vec2 uv = fragCoord / resolution;
-    return vec4(0.8, uv.x, uv.y, 1.0);
+    // customizable properties
+    float breatheSpeed = 0.5;
+    float swirlDepth = 1.4;
+    float rotateSpeed = 50.0;
+    float swirliness = 120.0;
+    float colorRotateSpeed = 7.0;
+    
+    // create normalized pixel coordinates, scale to aspect ratio and center on screen
+    vec2 uv = fragCoord / resolution - 0.5;
+    uv.x *= resolution.x / resolution.y;
+    
+    // convert to polar
+    float radius = length(uv);
+    float theta = 0.0;
+    if (uv.x != 0.0 && uv.y != 0.0){
+        theta = degrees(atan(uv.y, uv.x)) ;
+    }
+    // create a parameter for breathing
+    float p = swirlDepth * sin(iTime * breatheSpeed);
+    
+    float amod = mod(theta + rotateSpeed * iTime - swirliness * p * log(radius), 30.0);
+    if (amod<15.0){
+        myColor = vec3( 0.0, 0.0, 0.0);
+    } else {
+        myColor = hueshift(myColor, fract(theta / 360.0) + fract(iTime * colorRotateSpeed));
+        // make it darker in the center for a tunnel effect
+        vec2 center = resolution / 2.0;
+        vec2 topMiddle = vec2(resolution.x / 2.0, resolution.y);
+        myColor *= pow(radius / distance(center, topMiddle) * 2000.0, 0.9);
+    }
+    
+    return vec4(myColor, 1.0);
     
 }
 
@@ -238,8 +269,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     //fragColor = myEffect0(fragCoord, iResolution.xy);
     //fragColor = myEffect1(fragCoord, iResolution.xy);
     //fragColor = myEffect2(fragCoord, iResolution.xy);
-    //fragColor = myEffect3(fragCoord, iResolution.xy);
-    fragColor = testEffect(fragCoord, iResolution.xy);
+    fragColor = myEffect3(fragCoord, iResolution.xy);
+    //fragColor = testEffect(fragCoord, iResolution.xy);
     
     /*
     // Normalized pixel coordinates (from 0 to 1)
