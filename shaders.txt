@@ -1,3 +1,12 @@
+/*
+
+code by Steven Annunziato for GPR-200
+for use on shadertoy.com
+Creates a collection of visual effects.
+
+*/
+
+
 // utility functions
 // conversions adapted from here: https://www.niwa.nu/2013/05/math-behind-colorspace-conversions-rgb-hsl/
 // and here: https://www.rapidtables.com/convert/color/hsl-to-rgb.html
