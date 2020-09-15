@@ -57,12 +57,15 @@ vec3 hsl2rgb(in vec3 hsl)
  
     vec3 rgb;
     
+    // create temporary variables for readability
     float h = hsl.x * 360.0;
     float s = hsl.y;
     float l = hsl.z;
     float c = (1.0 - abs(2.0 * l - 1.0)) * s;
     float x = c * (1.0 - abs(mod((h / 60.0), 2.0) - 1.0));
     float m = l - c / 2.0;
+    
+    // determine individual RGB values
     vec3 temp;
     if (h < 60.0) {
         temp = vec3(c, x, 0.0);
@@ -82,6 +85,7 @@ vec3 hsl2rgb(in vec3 hsl)
     else if (h >= 300.0) {
         temp = vec3(c, 0, x);
     }
+    // finalize RGB values
     rgb = vec3(temp.x + m, temp.y + m, temp.z + m);
     
     return rgb;
@@ -108,9 +112,11 @@ vec4 myEffect0(in vec2 fragCoord, in vec2 resolution)
     
     // R -> 0.8
     // G -> horizontal
-    // b -> vertical
-    // a -> 1
+    // B -> vertical
+    // A -> 1
+    // create standardized coordinates
     vec2 uv = fragCoord / resolution;
+    // return a gradient
     return vec4(0.8, uv.x, uv.y, 1.0);
     
 }
@@ -325,11 +331,11 @@ vec4 testEffect(in vec2 fragCoord, in vec2 resolution)
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
  	
-    //fragColor = myEffect0(fragCoord, iResolution.xy);
+    fragColor = myEffect0(fragCoord, iResolution.xy);
     //fragColor = myEffect1(fragCoord, iResolution.xy);
     //fragColor = myEffect2(fragCoord, iResolution.xy);
     //fragColor = myEffect3(fragCoord, iResolution.xy);
-    fragColor = myEffect4(fragCoord, iResolution.xy);
+    //fragColor = myEffect4(fragCoord, iResolution.xy);
     //fragColor = testEffect(fragCoord, iResolution.xy);
     
 }
