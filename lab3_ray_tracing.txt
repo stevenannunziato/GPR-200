@@ -8,7 +8,7 @@ https://raytracing.github.io/books/RayTracingInOneWeekend.html#rays,asimplecamer
 */
 
 struct Sphere {
-    vec3 origin;
+    vec3 center;
     float radius;
 };
 struct HitRecord {
@@ -39,7 +39,7 @@ void setFaceNormal(vec4 rayDirection, vec4 rayOrigin, in vec3 outwardNormal, out
 }
 
 // detect if a ray has hit a sphere with clamped t value
-bool hitSphere(vec3 center, float radius, vec4 rayDirection, vec4 rayOrigin, float tMin, float tMax, out HitRecord record)
+bool hitSphere(in vec3 center, in float radius, in vec4 rayDirection, in vec4 rayOrigin, in float tMin, in float tMax, out HitRecord record)
 {
 	// calculate if the ray hits a sphere
     vec3 oc = rayOrigin.xyz - center;
@@ -80,7 +80,30 @@ bool hitSphere(vec3 center, float radius, vec4 rayDirection, vec4 rayOrigin, flo
         return (-half_b - sqrt(discriminant)) / a;
     }*/
 }
+
+// consumes an array of spheres and a ray, and determines if any of the spheres have been hit
+bool hitSphereArray(in Sphere spheres[10], in vec4 rayDirection, in vec4 rayOrigin, in float tMin, in float tMax, out HitRecord record)
+{
+    HitRecord tempRecord;
+    bool hitAnything = false;
+    float closestSoFar = tMax;
     
+    // loop through each sphere to determine if there is a hit
+    for (int i = spheres.length() - 1; i >= 0; --i)
+    {
+        if (hitSphere(spheres[i].center, spheres[i].radius, rayDirection, rayOrigin, tMin, closestSoFar, tempRecord))
+        {
+            hitAnything = true;
+            closestSoFar = tempRecord.t;
+            record = tempRecord;
+        }
+    }
+    
+    // nothing is hit
+    return hitAnything;
+}
+
+
 // detect if a ray has hit a sphere (legacy version - to be deleted)
 float hitSphere(vec3 center, float radius, vec4 rayDirection, vec4 rayOrigin)
 {
@@ -149,17 +172,24 @@ void calcRay(out vec4 rayDirection, out vec4 rayOrigin,
 // calcColor: calculate the color of a pixel given a ray
 //    rayDirection: input ray direction
 //    rayOrigin:    input ray origin
-vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
+vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin, in Sphere spheres[10])
 {
     // DUMMY RESULT: OUTPUT RAY DIRECTION AS-IS
     // -> what does the ray look like as color?
     //return rayDirection;
     
+    // create hit records for all objects in the world (aka the array of spheres)
+    HitRecord record;
+    if (hitSphereArray(spheres, rayDirection, rayOrigin, 0.0, 10000.0, record))
+    {
+        return vec4(0.5 * (record.normal + vec3(1.0)), 1.0);
+    }
+    
     // calculate unit vector for the current ray direction
     float invLength = 1.0 / length(rayDirection.xyz); // inefficient square root necessary here
     vec4 unitDirection = vec4(rayDirection.xyz * invLength, rayDirection.w);
     
-    // determine if the ray hits a sphere and shade based on surface normals
+    /*// determine if the ray hits a sphere and shade based on surface normals
     vec3 center = vec3(0.0, 0.0, -1.0);
     float radius = 0.5;
     float t = hitSphere(center, radius, rayDirection, rayOrigin);
@@ -167,10 +197,10 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         vec3 normal = at(rayDirection, rayOrigin, t) - center;
         normal /= length(normal); // this line can be heavily optimized
         return 0.5 * vec4(normal.x + 1.0, normal.y + 1.0, normal.z + 1.0, 1.0);
-    }
+    }*/
     
     // output a gradient in the background
-    t = 0.5 * (unitDirection.y + 1.0);
+    float t = 0.5 * (unitDirection.y + 1.0);
     return (1.0 - t) * vec4(1.0, 1.0, 1.0, 1.0) + t * vec4(0.5, 0.7, 1.0, 1.0);
 }
 
@@ -193,8 +223,19 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     calcRay(rayDirection, rayOrigin,
             viewport, focalLength);
 
+    // create world
+    Sphere sphere1 = Sphere(vec3(0.0, 0.0, -1.5), 0.55);
+    Sphere sphere2 = Sphere(vec3(1.0, 0.0, -1.5), 0.5);
+    Sphere sphere3 = Sphere(vec3(-1.0, 0.0, -1.5), 0.5);
+    Sphere ground = Sphere(vec3(0.0, -100.5, -1.0), 100.0);
+    Sphere world[10];
+    world[0] = sphere1;
+    world[1] = ground;
+    world[2] = sphere2;
+    world[3] = sphere3;
+    
     // calculate ray traced color per pixel
-    fragColor = calcColor(rayDirection, rayOrigin);
+    fragColor = calcColor(rayDirection, rayOrigin, world);
     
     // color
     //fragColor = calcColor(rayDirection, rayOrigin);
