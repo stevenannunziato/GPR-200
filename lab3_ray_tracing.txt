@@ -53,6 +53,7 @@ bool hitSphere(in vec3 center, in float radius, in vec4 rayDirection, in vec4 ra
         
         float temp = (-half_b - root) / a;
         if (temp > tMin && temp < tMax) {
+            // calculate hit record information
             record.t = temp;
             record.point = at(rayDirection, rayOrigin, temp);
             vec3 outwardNormal = (record.point - center) / radius;
@@ -62,6 +63,7 @@ bool hitSphere(in vec3 center, in float radius, in vec4 rayDirection, in vec4 ra
         
         temp = (-half_b + root) / a;
         if (temp > tMin && temp < tMax) {
+            // calculate hit record information
             record.t = temp;
             record.point = at(rayDirection, rayOrigin, temp);
             vec3 outwardNormal = (record.point - center) / radius;
@@ -72,13 +74,6 @@ bool hitSphere(in vec3 center, in float radius, in vec4 rayDirection, in vec4 ra
     
     return false;
     
-    /*// determine value for hit
-    if (discriminant < 0.0) {
-        return -1.0;
-    }
-    else {
-        return (-half_b - sqrt(discriminant)) / a;
-    }*/
 }
 
 // consumes an array of spheres and a ray, and determines if any of the spheres have been hit
@@ -216,7 +211,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     float invSamples = 1.0 / float(numberOfSamples);
     vec4 finalColor = vec4(0.0);
     for (int i = numberOfSamples - 1; i > 0; --i) {
-        rayDirection += vec4(vec3(randomFloat(fragCoord) * 0.0002), 0.0);
+        rayOrigin += vec4(vec3(randomFloat(fragCoord) * 0.0002), 0.0);
         finalColor += calcColor(rayDirection, rayOrigin, world);
     }
     fragColor = finalColor * invSamples;
