@@ -51,7 +51,12 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
 {
     // DUMMY RESULT: OUTPUT RAY DIRECTION AS-IS
     // -> what does the ray look like as color?
-    return rayDirection;
+    //return rayDirection;
+    
+    float invLength = 1.0 / length(rayDirection.xyz);
+    vec4 unitDirection = vec4(rayDirection.xyz * invLength, rayDirection.w);
+    float t = 0.5 * (unitDirection.y + 1.0);
+    return (1.0 - t) * vec4(1.0, 1.0, 1.0, 1.0) + t * vec4(0.5, 0.7, 1.0, 1.0);
 }
 
 // mainImage: process the current pixel (exactly one call per pixel)
@@ -79,8 +84,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     // TEST COLOR:
     //  -> what do the other things calculated above look like?
     //fragColor = vec4(viewport, 0.0, 0.0);
-    fragColor = vec4(ndc, 0.0, 0.0); // origin is in the middle of the screen
+    //fragColor = vec4(ndc, 0.0, 0.0); // origin is in the middle of the screen
     //fragColor = vec4(uv, 0.0, 0.0);
+    
+    fragColor = calcColor(rayDirection, rayOrigin);
 }
 
 /*
