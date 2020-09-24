@@ -1,350 +1,155 @@
-/*
+// GLSL STARTER CODE BY DANIEL S. BUCKSTEIN
 
-code by Steven Annunziato for GPR-200
-for use on shadertoy.com
-Creates a collection of visual effects.
-
-*/
-
-
-// utility functions
-// conversions adapted from here: https://www.niwa.nu/2013/05/math-behind-colorspace-conversions-rgb-hsl/
-// and here: https://www.rapidtables.com/convert/color/hsl-to-rgb.html
-vec3 rgb2hsl(in vec3 rgb)
+// asPoint: promote a 3D vector into a 4D vector representing a point (w=1)
+//    point: input 3D vector
+vec4 asPoint(in vec3 point)
 {
-    vec3 hsl;
-    
-    // perform RGB to HSL calculation
-    float minimum = rgb.r;
-    for (int i = 1; i < 3; i++) {
-        if (rgb[i] < minimum) {
-        	minimum = rgb[i];   
-        }
-    }
-    float maximum = rgb.r;
-    for (int i = 1; i < 3; i++) {
-        if (rgb[i] > maximum) {
-        	maximum = rgb[i];   
-        }
-    }
-    // calculate luminance
-    hsl.z = (maximum + minimum) / 2.0;
-    // calculate saturation
-    if (maximum - minimum == 0.0) {
-    	hsl.y = 0.0;    
-    }
-    else {
-        hsl.y = (maximum - minimum) / (1.0 - abs(2.0 * hsl.z - 1.0));
-    }
-    
-    // calculate hue
-    if (maximum - minimum == 0.0) {
-    	hsl.x = 0.0;    
-    }
-    else if (maximum == rgb.r) {
-        hsl.x = (rgb.g - rgb.b) / (maximum - minimum);
-    }
-    else if (maximum == rgb.g) {
-        hsl.x = 2.0 + (rgb.b - rgb.r) / (maximum - minimum);
-    }
-    else if (maximum == rgb.b) {
-        hsl.x = 4.0 + (rgb.r - rgb.g) / (maximum - minimum);
-    }
-    hsl.x *= 60.0;
-    if (hsl.x < 0.0) {
-        hsl.x += 360.0;
-    }
-    // map back to [0,1]
-    hsl.x /= 360.0;
-    
-    return hsl;
-    
-}
-// adapted from here: https://www.rapidtables.com/convert/color/hsl-to-rgb.html
-vec3 hsl2rgb(in vec3 hsl)
-{
- 
-    vec3 rgb;
-    
-    // create temporary variables for readability
-    float h = hsl.x * 360.0;
-    float s = hsl.y;
-    float l = hsl.z;
-    float c = (1.0 - abs(2.0 * l - 1.0)) * s;
-    float x = c * (1.0 - abs(mod((h / 60.0), 2.0) - 1.0));
-    float m = l - c / 2.0;
-    
-    // determine individual RGB values
-    vec3 temp;
-    if (h < 60.0) {
-        temp = vec3(c, x, 0.0);
-    }
-    else if (h >= 60.0 && h < 120.0) {
-        temp = vec3(x, c, 0);
-    }
-    else if (h >= 120.0 && h < 180.0) {
-        temp = vec3(0, c, x);
-    }
-    else if (h >= 180.0 && h < 240.0) {
-        temp = vec3(0, x, c);
-    }
-    else if (h >= 240.0 && h < 300.0) {
-        temp = vec3(x, 0, c);
-    }
-    else if (h >= 300.0) {
-        temp = vec3(c, 0, x);
-    }
-    // finalize RGB values
-    rgb = vec3(temp.x + m, temp.y + m, temp.z + m);
-    
-    return rgb;
-    
-}
-// hue shift function
-vec3 hueshift(in vec3 orig, in float shift)
-{
-    vec3 shifted = rgb2hsl(orig);
-    shifted.x += shift;
-    if (shifted.x > 1.0) {
-        shifted.x -= 1.0;
-    }
-    if (shifted.x < 0.0) {
-        shifted.x += 1.0;
-    }
-    shifted = hsl2rgb(shifted);
-    return shifted;
+    return vec4(point, 1.0);
 }
 
-// effect 0: static gradient
-vec4 myEffect0(in vec2 fragCoord, in vec2 resolution)
+// asOffset: promote a 3D vector into a 4D vector representing an offset (w=0)
+//    offset: input 3D vector
+vec4 asOffset(in vec3 offset)
 {
-    
-    // R -> 0.8
-    // G -> horizontal
-    // B -> vertical
-    // A -> 1
-    // create standardized coordinates
-    vec2 uv = fragCoord / resolution;
-    // return a gradient
-    return vec4(0.8, uv.x, uv.y, 1.0);
-    
+    return vec4(offset, 0.0);
 }
 
-// effect 1: static checkerboard
-// NOTE: this is likely very inefficient due to the amount of sin calls
-vec4 myEffect1(in vec2 fragCoord, in vec2 resolution)
+// calcViewport: calculate the viewing plane (viewport) coordinate
+//    viewport:       output viewing plane coordinate
+//    ndc:            output normalized device coordinate
+//    uv:             output screen-space coordinate
+//    aspect:         output aspect ratio of screen
+//    resolutionInv:  output reciprocal of resolution
+//    viewportHeight: input height of viewing plane
+//    fragCoord:      input coordinate of current fragment (in pixels)
+//    resolution:     input resolution of screen (in pixels)
+void calcViewport(out vec3 viewport, out vec2 ndc, out vec2 uv,
+                  out float aspect, out vec2 resolutionInv,
+                  in float viewportHeight, in float focalLength,
+                  in vec2 fragCoord, in vec2 resolution)
 {
-    // modifiable properties
-    float widthModifier = 5.0;
+    // inverse (reciprocal) resolution = 1 / resolution
+    resolutionInv = 1.0 / resolution;
     
-    // declare final color
-    vec4 myColor;
-    
-    // create imaginary horizontal lines across the screen
-    // if we are on the first set of imaginary rows:
-    if (sin(fragCoord.y / widthModifier) > 0.0) {
-        // create vertical lines of black and white
-        if (sin(fragCoord.x / widthModifier) > 0.0) {
-            myColor = vec4(1.0, 1.0, 1.0, 1.0);
-        }
-        else {
-            myColor = vec4(0.0, 0.0, 0.0, 0.0);
-        }
-    }
-    // if we are on the other set of imaginary rows:
-    else {
-        // create vertical lines of black and white except opposite of the other rows
-        if (sin(fragCoord.x / widthModifier) <= 0.0) {
-            myColor = vec4(1.0, 1.0, 1.0, 1.0);
-        }
-        else {
-            myColor = vec4(0.0, 0.0, 0.0, 0.0);
-        }
-    }
-    
-    return myColor;
+    // aspect ratio = screen width / screen height
+    aspect = resolution.x * resolutionInv.y;
+
+    // uv = screen-space coordinate = [0, 1) = coord / resolution
+    uv = fragCoord * resolutionInv;
+
+    // ndc = normalized device coordinate = [-1, +1) = uv*2 - 1
+    ndc = uv * 2.0 - 1.0;
+
+    // viewport: x = [-aspect*h/2, +aspect*h/2), y = [-h/2, +h/2), z = -f
+    viewport = vec3(ndc * vec2(aspect, 1.0) * (viewportHeight * 0.5), -focalLength);
 }
 
-// effect 2: breathing circle
-vec4 myEffect2(in vec2 fragCoord, in vec2 resolution)
+// calcRay: calculate the ray direction and origin for the current pixel
+//    rayDirection: output direction of ray from origin
+//    rayOrigin:    output origin point of ray
+//    viewport:     input viewing plane coordinate (use above function to calculate)
+//    focalLength:  input distance to viewing plane
+void calcRay(out vec4 rayDirection, out vec4 rayOrigin,
+             in vec3 eyePosition, in vec3 viewport)
 {
+    // ray origin relative to viewer is the origin
+    // w = 1 because it represents a point; can ignore when using
+    rayOrigin = asPoint(eyePosition);
+
+    // ray direction relative to origin is based on viewing plane coordinate
+    // w = 0 because it represents a direction; can ignore when using
+    rayDirection = asOffset(viewport - eyePosition);
+}
+
+struct sSphere
+{
+    vec4 position;
+    float radius;
+};
     
-    // modifiable properties
-    float circleSize = 2.0;
-    float breatheAmount = 0.65;
-    float colorIntensity = 0.5;
-    float colorCycleSpeed = 0.1f;
+void initSphere(out sSphere sphere, in vec3 position, in float radius)
+{
+    sphere.position = asPoint(position);
+    sphere.radius = radius;
+}
+
+float lengthSquared(vec2 x) {
+    return dot(x, x);
+}
+
+/*// extra optimized
+bool initSphere(out sSphere sphere, in vec3 position, in float radius)
+{
+    sphere.position = asPoint(position);
+    if (radius > 0) {
+        sphere.radius = radius;
+        return true;
+    }
+    sphere.radius = 1.0;
+    return false;
+}*/
+
+// calcColor: calculate the color of a pixel given a ray
+//    rayDirection: input ray direction
+//    rayOrigin:    input ray origin
+vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
+{
+    // DUMMY RESULT: OUTPUT RAY DIRECTION AS-IS
+    //  -> what does the ray look like as color?
+    //return rayDirection;
+	
+    // SCENE
+    sSphere sphere1;
+    initSphere(sphere1, vec3(0.0, 0.0, -4.0), 0.5);
     
-    // declare final color and supporting colors
-    vec4 myColor;
-    //vec3 currentColor = 0.5 + colorIntensity*cos(iTime*colorCycleSpeed+vec3(0,2,4));
-    vec3 currentColor = hueshift(vec3(1.0, 0.0, 0.0), fract(iTime * colorCycleSpeed));
-    vec3 complementaryColor = vec3(1.0, 1.0, 1.0) - currentColor;
+    vec3 dp;
+    dp.xy = rayDirection.xy - sphere1.position.xy;
+    float lSq = lengthSquared(dp.xy);
+    float rSq = sphere1.radius * sphere1.radius;
     
-    // find center coordinate of the screen
-    vec2 center = vec2(resolution / 2.0);
-    
-    // determine radius of the circle and distance from the center point
-    float radius = 100.0 * (sin(iTime) + circleSize) * breatheAmount;
-    float dist = distance(fragCoord, center);
-    
-    // if we are inside the circle
-    if (dist < radius) {
-        // create radial gradient
+    // inside the sphere
+    if (lSq <= rSq)
+    {
+        //return vec4(0.0, 1.0, 1.0, 1.0);
         
-        // get value [0, 2] based on distance from center
-        float normalizedDistance = dist / radius * 2.0;
+        // dz_sq for now
+        //dp.z = sphere1.radius * sphere1.radius - (dp.x * dp.x + dp.y * dp.y);
+        dp.z = rSq - lSq;
         
-        // create a color based on this dist and the current color
-        //vec3 extraColor = vec3(currentColor.x, complementaryColor.x, normalizedDistance);
-        vec3 extraColor = hueshift(currentColor, 0.25);
+        vec3 position = sphere1.position.xyz + vec3(dp.x, dp.y, sqrt(dp.z));
+        //vec3 normal = normalize(position - sphere1.position.xyz);
+        vec3 normal = (position - sphere1.position.xyz) / sphere1.radius; // length is known so we can contextually optimize
         
-        if (normalizedDistance < 1.0) { // inner gradient color band
-        	currentColor = mix(currentColor, extraColor, normalizedDistance);
-        }
-        else { // outer gradient color band
-            currentColor = mix(extraColor, complementaryColor, normalizedDistance - 1.0);
-        }
-        myColor = vec4(currentColor, 1.0);
-    }
-    // not in the circle
-    else {
-    	myColor = vec4(complementaryColor, 1.0);
+        return vec4(normal * 0.5 + 0.5, 1.0);
     }
     
-    return myColor;
-    
+	// BACKGROUND
+	const vec3 warm = vec3(0.6, 0.35, 0.7), cool = vec3(0.2, 0.4, 0.8);
+	//return vec4(mix(warm, cool, rayDirection.y), 1.0);
+    return vec4(0.2);
 }
 
-// effect 3: psychedelic spiral
-// method for creating a spiral sampled from user brainjam: https://stackoverflow.com/questions/4638317/how-to-implement-this-rotating-spiral-in-webgl
-// specifically, I referenced the method for determining angle and amod.
-vec4 myEffect3(in vec2 fragCoord, in vec2 resolution)
+// mainImage: process the current pixel (exactly one call per pixel)
+//    fragColor: output final color for current pixel
+//    fragCoord: input location of current pixel in image (in pixels)
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
-    vec3 myColor = vec3(1.0, 0.0, 0.0);
-    
-    // customizable properties
-    float breatheSpeed = 0.5;
-    float swirlDepth = 1.4;
-    float rotateSpeed = 50.0;
-    float swirliness = 120.0;
-    float colorRotateSpeed = 7.0;
-    
-    // create normalized pixel coordinates, scale to aspect ratio and center on screen
-    vec2 uv = fragCoord / resolution - 0.5;
-    uv.x *= resolution.x / resolution.y;
-    
-    // convert to polar
-    float radius = length(uv);
-    float theta = 0.0;
-    if (uv.x != 0.0 && uv.y != 0.0){
-        theta = degrees(atan(uv.y, uv.x)) ;
-    }
-    // create a parameter for breathing
-    float p = swirlDepth * sin(iTime * breatheSpeed);
-    
-    float amod = mod(theta + rotateSpeed * iTime - swirliness * p * log(radius), 30.0);
-    if (amod<15.0){
-        myColor = vec3( 0.0, 0.0, 0.0);
-    } else {
-        myColor = hueshift(myColor, fract(theta / 360.0) + fract(iTime * colorRotateSpeed));
-        // make it darker in the center for a tunnel effect
-        vec2 center = resolution / 2.0;
-        vec2 topMiddle = vec2(resolution.x / 2.0, resolution.y);
-        myColor *= pow(radius / distance(center, topMiddle) * 2000.0, 0.9);
-    }
-    
-    return vec4(myColor, 1.0);
-    
-}
+    // viewing plane (viewport) info
+    vec3 viewport;
+    vec2 ndc, uv, resolutionInv;
+    float aspect;
+    const float viewportHeight = 2.0, focalLength = 1.0;
 
-// effect 4: drippy waves
-vec4 myEffect4(in vec2 fragCoord, in vec2 resolution)
-{
-    
-    // make final color to return at the end of the function
-    vec3 myColor = vec3(0.0);
-    vec2 uv = fragCoord / resolution;
-    
-    // customizable properties
-    // wave1 (top)
-    float wave1Width = 30.0;
-    float wave1Depth = 5.0;
-    float wave1DepthAlt = 10.0 + sin(iTime) * 2.0;
-    float squiggle = 3.0 + sin(iTime) * 0.4;
-    float wave1Yoffset = resolution.y * 0.75 + sin(iTime) * 30.0;
-    // wave2 (bottom)
-    float wave2Width = 10.0;
-    float wave2Depth = 10.0;
-    float wave2DepthAlt = 10.0 - sin(iTime) * 2.0;
-    float squiggle2 = 1.0 - sin(iTime / 4.0) * 2.0;
-    float wave2Yoffset = resolution.y * 0.25;
-    // background
-    float widthModifier = 15.0;
-    float scrollSpeed = 100.0;
-    
-    // determine y values for each wave
-    float wave1value = (sin(fragCoord.x / wave1Width) * wave1DepthAlt + cos(squiggle * (fragCoord.x / wave1Width)) * wave1Depth) + wave1Yoffset;
-    float wave2value = (sin(fragCoord.x / wave2Width) * wave2DepthAlt + cos(squiggle2 * (fragCoord.x / wave2Width)) * wave2Depth) + wave2Yoffset;
-    
-    if (fragCoord.y < wave1value && fragCoord.y > wave2value) {
-        myColor = vec3(1.0, 0.0, 0.0);
-        myColor = hueshift(myColor, uv.x * 0.1 + fract(iTime * 0.5));
-    }
-    else {
-        // create vertical lines of black and white in the background
-        // top half of the screen
-        if (uv.y > 0.5) {
-            if (sin((fragCoord.x - iTime * scrollSpeed) / widthModifier) > 0.0) {
-                myColor = vec3(1.0, 1.0, 1.0);
-            }
-            else {
-                myColor = vec3(0.0, 0.0, 0.0);
-            }
-        }
-        // bottom half of the screen
-        else {
-            if (sin((fragCoord.x + iTime * scrollSpeed) / widthModifier) > 0.0) {
-                myColor = vec3(1.0, 1.0, 1.0);
-            }
-            else {
-                myColor = vec3(0.0, 0.0, 0.0);
-            }
-        }
-    }
-    
-    return vec4(myColor, 1.0);
-    
-}
+    // ray
+    vec4 rayDirection, rayOrigin;
 
-vec4 testEffect(in vec2 fragCoord, in vec2 resolution)
-{
-    // how to use arrays:
-    float myArray[6] = float[6](1.0, 2.0, 1.0, 2.0, 1.0, 2.0);
-    myArray[0] = 1.0;
+    // setup
+    fragColor = vec4(0.0);
     
-    // all of these are equal:
-    //color[0] = 1.0;  |  color.x = 1.0;  |  color.r = 1.0;
+    calcViewport(viewport, ndc, uv, aspect, resolutionInv,
+    	             viewportHeight, focalLength,
+    	             fragCoord, iResolution.xy);
+    calcRay(rayDirection, rayOrigin, vec3(0.0), viewport);
     
-    // output gradient
-    //vec2 uv = fragCoord / resolution;
-    //return vec4(0.0, uv.x, uv.y, 1.0);
-    
-    vec3 originalRGB = vec3(171.0/255.0, 152.0/255.0, 84.0/255.0);
-    vec3 converted = hsl2rgb(rgb2hsl(originalRGB));
-    vec3 shifted = hueshift(converted, 0.1);
-    return vec4(shifted, 1.0);
-    
-}
-
-void mainImage( out vec4 fragColor, in vec2 fragCoord )
-{
- 	
-    fragColor = myEffect0(fragCoord, iResolution.xy);
-    //fragColor = myEffect1(fragCoord, iResolution.xy);
-    //fragColor = myEffect2(fragCoord, iResolution.xy);
-    //fragColor = myEffect3(fragCoord, iResolution.xy);
-    //fragColor = myEffect4(fragCoord, iResolution.xy);
-    //fragColor = testEffect(fragCoord, iResolution.xy);
-    
+    fragColor += calcColor(rayDirection, rayOrigin);
 }
