@@ -224,7 +224,7 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         
         vec3 position = sphere1.position.xyz + vec3(dp.x, dp.y, sqrt(dp.z));
         vec3 normal = (position - sphere1.position.xyz) / sphere1.radius; // length is known so we can contextually optimize
-        vec3 viewVector = normalize(vec3(0.0) - position); // optimize
+        vec3 viewVector = -position / sqrt(dot(position, position));
         
         // SHADING
         // light and color properties
