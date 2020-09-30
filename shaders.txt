@@ -62,6 +62,18 @@ void calcRay(out vec4 rayDirection, out vec4 rayOrigin,
     rayDirection = asOffset(viewport - eyePosition);
 }
 
+// optimized power increase function
+float pow64(float n)
+{
+    n *= n; // power = 2
+    n *= n; // power = 4
+    n *= n; // power = 8
+    n *= n; // power = 16
+    n *= n; // power = 32
+    n *= n; // power = 64
+    return n;
+}
+
 // structure for a point light
 struct sPointLight
 {
@@ -114,11 +126,11 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     //  -> what does the ray look like as color?
     //return rayDirection;
 	
-    // SCENE
+    // WORLD
     sSphere sphere1;
     initSphere(sphere1, vec3(0.0, 0.0, -4.0), 0.5);
     sPointLight light1;
-    initPointLight(light1, vec3(4.0, 2.0, 0.0), vec4(1.0), 10.0);
+    initPointLight(light1, vec3(3.25, 2.0, 0.0), vec4(1.0), 40.0);
     
     // determine if the ray lies inside a circle on the screen
     vec3 dp;
@@ -151,9 +163,18 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         float attenuatedIntensity = 1.0 / (1.0 + (lightDist / light1.intensity) + (lightDist * lightDist) / (light1.intensity * light1.intensity));
         float diffuseIntensity = diffuseCoefficient * attenuatedIntensity;
         
+        // phong reflectance
+        vec3 viewVector = normalize(vec3(0.0) - position);
+        vec3 reflectedLight = reflect(-lightVector, normal);
+        float specularCoefficient = max(0.0, dot(viewVector, reflectedLight));
+        float specularIntensity = pow64(specularCoefficient);
+        
         // final color
-        vec4 diffuseColor = vec4(0.4, 0.4, 0.9, 1.0);
-        vec4 finalColor = diffuseIntensity * diffuseColor * light1.color;
+        vec4 diffuseColor = vec4(0.3, 0.4, 0.99, 1.0);
+        float ambientIntensity = 0.1;
+        vec4 ambientColor = vec4(1.0, 0.9, 0.9, 1.0);
+        vec4 specularHighlightColor = vec4(1.0, 0.4, 0.8, 1.0);
+        vec4 finalColor = ambientIntensity * ambientColor + (diffuseIntensity * diffuseColor + specularIntensity * specularHighlightColor) * light1.color;
         
         //return vec4(normal * 0.5 + 0.5, 1.0);
         return vec4(finalColor);
@@ -161,8 +182,8 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     
 	// BACKGROUND
 	const vec3 warm = vec3(0.6, 0.35, 0.7), cool = vec3(0.2, 0.4, 0.8);
-	//return vec4(mix(warm, cool, rayDirection.y), 1.0);
-    return vec4(0.2);
+	return vec4(mix(warm, cool, rayDirection.y), 1.0);
+    //return vec4(0.2);
 }
 
 // mainImage: process the current pixel (exactly one call per pixel)
