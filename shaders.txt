@@ -61,12 +61,27 @@ void calcRay(out vec4 rayDirection, out vec4 rayOrigin,
     rayDirection = asOffset(viewport - eyePosition);
 }
 
+// structure for a point light
+struct sPointLight
+{
+    vec4 center;
+    vec4 color;
+    float intensity;
+};
+void initPointLight(out sPointLight light, in vec3 center, in vec4 color, in float intensity)
+{
+    light.center = asPoint(center);
+    light.color = color;
+    light.intensity = intensity;
+}
+
+// structure for a sphere
 struct sSphere
 {
     vec4 position;
     float radius;
 };
-    
+// give sphere some default values
 void initSphere(out sSphere sphere, in vec3 position, in float radius)
 {
     sphere.position = asPoint(position);
@@ -101,18 +116,20 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     // SCENE
     sSphere sphere1;
     initSphere(sphere1, vec3(0.0, 0.0, -4.0), 0.5);
+    sPointLight light1;
+    initLight(light1. vec3(4.0, 2.0, -2.0), vec4(1.0), 10.0);
     
+    // determine if the ray lies inside a circle on the screen
     vec3 dp;
     dp.xy = rayDirection.xy - sphere1.position.xy;
     float lSq = lengthSquared(dp.xy);
     float rSq = sphere1.radius * sphere1.radius;
     
-    // inside the sphere
+    // inside the circle
     if (lSq <= rSq)
     {
-        //return vec4(0.0, 1.0, 1.0, 1.0);
         
-        // dz_sq for now
+        // Project z-component of the sphere now that we are inside the circle
         //dp.z = sphere1.radius * sphere1.radius - (dp.x * dp.x + dp.y * dp.y);
         dp.z = rSq - lSq;
         
