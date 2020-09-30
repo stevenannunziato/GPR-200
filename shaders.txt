@@ -62,30 +62,6 @@ void calcRay(out vec4 rayDirection, out vec4 rayOrigin,
     rayDirection = asOffset(viewport - eyePosition);
 }
 
-// optimized power increase function
-float pow64(float n)
-{
-    n *= n; // power = 2
-    n *= n; // power = 4
-    n *= n; // power = 8
-    n *= n; // power = 16
-    n *= n; // power = 32
-    n *= n; // power = 64
-    return n;
-}
-float pow256(float n)
-{
-    n *= n; // power = 2
-    n *= n; // power = 4
-    n *= n; // power = 8
-    n *= n; // power = 16
-    n *= n; // power = 32
-    n *= n; // power = 64
-    n *= n; // power = 128
-    n *= n; // power = 256
-    return n;
-}
-
 // structure for a point light
 struct sPointLight
 {
@@ -117,6 +93,36 @@ float lengthSquared(vec2 x) {
     return dot(x, x);
 }
 
+// optimized power increase functions
+float pow64(float n)
+{
+    n *= n; // power = 2
+    n *= n; // power = 4
+    n *= n; // power = 8
+    n *= n; // power = 16
+    n *= n; // power = 32
+    n *= n; // power = 64
+    return n;
+}
+float pow256(float n)
+{
+    n *= n; // power = 2
+    n *= n; // power = 4
+    n *= n; // power = 8
+    n *= n; // power = 16
+    n *= n; // power = 32
+    n *= n; // power = 64
+    n *= n; // power = 128
+    n *= n; // power = 256
+    return n;
+}
+
+// polar to cartesian function
+vec2 polarToCartesian(in float radius, in float theta)
+{
+    return vec2(radius * cos(theta), radius * sin(theta));
+}
+
 /*// extra optimized
 bool initSphere(out sSphere sphere, in vec3 position, in float radius)
 {
@@ -146,7 +152,7 @@ float calcDiffuse(in sPointLight light, in vec3 position, in vec3 normal, out ve
 float phongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
 {
     // phong reflectance
-    vec3 reflectedLight = reflect(-lightVector, normal);
+    vec3 reflectedLight = reflect(-lightVector, normal); // optimize
     float specularCoefficient = max(0.0, dot(viewVector, reflectedLight));
     return pow64(specularCoefficient);
 }
@@ -166,8 +172,30 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     // WORLD
     sSphere sphere1;
     initSphere(sphere1, vec3(0.0, 0.0, -4.0), 0.5);
+    // values for animation
+    float intensity = 20.0;
+    float yVal = 8.0 * sin(iTime * 0.25);
+    float radius = 8.0;
+    float scaledTime = iTime * 1.0;
+    vec2 pos1 = polarToCartesian(radius, scaledTime);
+    vec2 pos2 = polarToCartesian(radius, scaledTime + 1.57);
+    vec2 pos3 = polarToCartesian(radius, scaledTime + 3.14);
+    vec2 pos4 = polarToCartesian(radius, scaledTime + 4.71);
+    // lights
     sPointLight light1;
-    initPointLight(light1, vec3(3.25, 2.0, 0.0), vec4(1.0), 40.0);
+    initPointLight(light1, vec3(pos1.x, yVal, pos1.y), vec4(1.0), intensity);
+    sPointLight light2;
+    initPointLight(light2, vec3(pos2.x, yVal, pos2.y), vec4(1.0), intensity);
+    sPointLight light3;
+    initPointLight(light3, vec3(pos3.x, yVal, pos3.y), vec4(1.0), intensity);
+    sPointLight light4;
+    initPointLight(light4, vec3(pos4.x, yVal, pos4.y), vec4(1.0), intensity);
+    // array of lights to keep things organized
+    sPointLight lights[4];
+    lights[0] = light1;
+    lights[1] = light2;
+    lights[2] = light3;
+    lights[3] = light4;
     
     // determine if the ray lies inside a circle on the screen
     vec3 dp;
@@ -189,22 +217,29 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         vec3 viewVector = normalize(vec3(0.0) - position); // optimize
         
         // LIGHTING
-        // diffuse
-        vec3 lightVector;
-		float diffuseIntensity = calcDiffuse(light1, position, normal, lightVector);
         
-        // specular
-        //float specularIntensity = phongSpecular(lightVector, viewVector, normal);
-        float specularIntensity = blinnPhongSpecular(lightVector, viewVector, normal);
-        
-        // final color
         // light and color properties
         vec4 diffuseColor = vec4(0.65, 0.35, 1.0, 1.0);
         float ambientIntensity = 0.02;
         vec4 ambientColor = vec4(1.0, 0.9, 0.9, 1.0);
         vec4 specularHighlightColor = vec4(1.0, 0.4, 0.8, 1.0);
+        
         // final calculation
-        vec4 finalColor = ambientIntensity * ambientColor + (diffuseIntensity * diffuseColor + specularIntensity * specularHighlightColor) * light1.color;
+        vec4 finalAmbient = ambientIntensity * ambientColor;
+        vec4 summedColor = vec4(0.0);
+        for (int i = lights.length() - 1; i >= 0; --i) {
+            
+            // first calculate diffuse intensity
+            vec3 lightVector; // handling lightVector this way assumes the user calculates diffuse first, then specular. Saves on performance.
+			float diffuseIntensity = calcDiffuse(lights[i], position, normal, lightVector);
+            
+            // next calculate specular intensity (blinn-phong to save on performance)
+            float specularIntensity = blinnPhongSpecular(lightVector, viewVector, normal);
+            
+            // final calculation
+            summedColor += (diffuseIntensity * diffuseColor + specularIntensity * specularHighlightColor) * lights[i].color;
+        }
+        vec4 finalColor = finalAmbient + summedColor;
         
         //return vec4(normal * 0.5 + 0.5, 1.0);
         return vec4(finalColor);
