@@ -73,6 +73,18 @@ float pow64(float n)
     n *= n; // power = 64
     return n;
 }
+float pow256(float n)
+{
+    n *= n; // power = 2
+    n *= n; // power = 4
+    n *= n; // power = 8
+    n *= n; // power = 16
+    n *= n; // power = 32
+    n *= n; // power = 64
+    n *= n; // power = 128
+    n *= n; // power = 256
+    return n;
+}
 
 // structure for a point light
 struct sPointLight
@@ -117,15 +129,40 @@ bool initSphere(out sSphere sphere, in vec3 position, in float radius)
     return false;
 }*/
 
+// calculations for diffuse light scattering
+float calcDiffuse(in sPointLight light, in vec3 position, in vec3 normal, out vec3 lightVector)
+{
+    // lambertian reflectance
+    lightVector = light.center.xyz - position;
+    float lightDist = length(lightVector); // optimize
+    float invDist = 1.0 / lightDist;
+    lightVector *= invDist; // light vector is now normalized
+    float diffuseCoefficient = max(0.0, dot(normal, lightVector));
+    // attenuation (light falloff)
+    float attenuatedIntensity = 1.0 / (1.0 + (lightDist / light.intensity) + (lightDist * lightDist) / (light.intensity * light.intensity));
+    return diffuseCoefficient * attenuatedIntensity;
+}
+// calculations for specular highlights
+float phongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
+{
+    // phong reflectance
+    vec3 reflectedLight = reflect(-lightVector, normal);
+    float specularCoefficient = max(0.0, dot(viewVector, reflectedLight));
+    return pow64(specularCoefficient);
+}
+float blinnPhongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
+{
+    // blinn-phong reflectance
+    vec3 halfwayVector = normalize(lightVector + viewVector); // optimize
+    float specularCoefficient = max(0.0, dot(normal, halfwayVector));
+    return pow256(specularCoefficient);   
+}
+
 // calcColor: calculate the color of a pixel given a ray
 //    rayDirection: input ray direction
 //    rayOrigin:    input ray origin
 vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
-{
-    // DUMMY RESULT: OUTPUT RAY DIRECTION AS-IS
-    //  -> what does the ray look like as color?
-    //return rayDirection;
-	
+{	
     // WORLD
     sSphere sphere1;
     initSphere(sphere1, vec3(0.0, 0.0, -4.0), 0.5);
@@ -149,31 +186,24 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         vec3 position = sphere1.position.xyz + vec3(dp.x, dp.y, sqrt(dp.z));
         //vec3 normal = normalize(position - sphere1.position.xyz);
         vec3 normal = (position - sphere1.position.xyz) / sphere1.radius; // length is known so we can contextually optimize
+        vec3 viewVector = normalize(vec3(0.0) - position); // optimize
         
         // LIGHTING
+        // diffuse
+        vec3 lightVector;
+		float diffuseIntensity = calcDiffuse(light1, position, normal, lightVector);
         
-        // lambertian reflectance
-        vec3 lightVector = light1.center.xyz - position;
-        float lightDist = length(lightVector); // optimize
-        float invDist = 1.0 / lightDist;
-        lightVector *= invDist; // light vector is now normalized
-        float diffuseCoefficient = max(0.0, dot(normal, lightVector));
-        
-        // attenuation (light falloff)
-        float attenuatedIntensity = 1.0 / (1.0 + (lightDist / light1.intensity) + (lightDist * lightDist) / (light1.intensity * light1.intensity));
-        float diffuseIntensity = diffuseCoefficient * attenuatedIntensity;
-        
-        // phong reflectance
-        vec3 viewVector = normalize(vec3(0.0) - position);
-        vec3 reflectedLight = reflect(-lightVector, normal);
-        float specularCoefficient = max(0.0, dot(viewVector, reflectedLight));
-        float specularIntensity = pow64(specularCoefficient);
+        // specular
+        //float specularIntensity = phongSpecular(lightVector, viewVector, normal);
+        float specularIntensity = blinnPhongSpecular(lightVector, viewVector, normal);
         
         // final color
-        vec4 diffuseColor = vec4(0.3, 0.4, 0.99, 1.0);
-        float ambientIntensity = 0.1;
+        // light and color properties
+        vec4 diffuseColor = vec4(0.65, 0.35, 1.0, 1.0);
+        float ambientIntensity = 0.02;
         vec4 ambientColor = vec4(1.0, 0.9, 0.9, 1.0);
         vec4 specularHighlightColor = vec4(1.0, 0.4, 0.8, 1.0);
+        // final calculation
         vec4 finalColor = ambientIntensity * ambientColor + (diffuseIntensity * diffuseColor + specularIntensity * specularHighlightColor) * light1.color;
         
         //return vec4(normal * 0.5 + 0.5, 1.0);
