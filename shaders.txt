@@ -1,4 +1,5 @@
 // GLSL STARTER CODE BY DANIEL S. BUCKSTEIN
+// Modified by Steven Annunziato
 
 // asPoint: promote a 3D vector into a 4D vector representing a point (w=1)
 //    point: input 3D vector
@@ -117,7 +118,7 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     sSphere sphere1;
     initSphere(sphere1, vec3(0.0, 0.0, -4.0), 0.5);
     sPointLight light1;
-    initLight(light1. vec3(4.0, 2.0, -2.0), vec4(1.0), 10.0);
+    initPointLight(light1, vec3(4.0, 2.0, 0.0), vec4(1.0), 10.0);
     
     // determine if the ray lies inside a circle on the screen
     vec3 dp;
@@ -137,7 +138,25 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         //vec3 normal = normalize(position - sphere1.position.xyz);
         vec3 normal = (position - sphere1.position.xyz) / sphere1.radius; // length is known so we can contextually optimize
         
-        return vec4(normal * 0.5 + 0.5, 1.0);
+        // LIGHTING
+        
+        // lambertian reflectance
+        vec3 lightVector = light1.center.xyz - position;
+        float lightDist = length(lightVector); // optimize
+        float invDist = 1.0 / lightDist;
+        lightVector *= invDist; // light vector is now normalized
+        float diffuseCoefficient = max(0.0, dot(normal, lightVector));
+        
+        // attenuation (light falloff)
+        float attenuatedIntensity = 1.0 / (1.0 + (lightDist / light1.intensity) + (lightDist * lightDist) / (light1.intensity * light1.intensity));
+        float diffuseIntensity = diffuseCoefficient * attenuatedIntensity;
+        
+        // final color
+        vec4 diffuseColor = vec4(0.4, 0.4, 0.9, 1.0);
+        vec4 finalColor = diffuseIntensity * diffuseColor * light1.color;
+        
+        //return vec4(normal * 0.5 + 0.5, 1.0);
+        return vec4(finalColor);
     }
     
 	// BACKGROUND
