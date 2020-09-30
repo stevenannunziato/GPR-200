@@ -94,6 +94,10 @@ float lengthSquared(vec2 x) {
 }
 
 // optimized power increase functions
+float square(float n)
+{
+    return n * n;
+}
 float pow64(float n)
 {
     n *= n; // power = 2
@@ -140,12 +144,13 @@ float calcDiffuse(in sPointLight light, in vec3 position, in vec3 normal, out ve
 {
     // lambertian reflectance
     lightVector = light.center.xyz - position;
-    float lightDist = length(lightVector); // optimize
+    float lightDist = sqrt(dot(lightVector, lightVector));
     float invDist = 1.0 / lightDist;
     lightVector *= invDist; // light vector is now normalized
     float diffuseCoefficient = max(0.0, dot(normal, lightVector));
     // attenuation (light falloff)
-    float attenuatedIntensity = 1.0 / (1.0 + (lightDist / light.intensity) + (lightDist * lightDist) / (light.intensity * light.intensity));
+    float invIntensity = 1.0 / light.intensity;
+    float attenuatedIntensity = 1.0 / (1.0 + (lightDist * invIntensity) + square(lightDist * invIntensity));
     return diffuseCoefficient * attenuatedIntensity;
 }
 // calculations for specular highlights
@@ -159,9 +164,20 @@ float phongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
 float blinnPhongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
 {
     // blinn-phong reflectance
-    vec3 halfwayVector = normalize(lightVector + viewVector); // optimize
+    vec3 temp = lightVector + viewVector;
+    float invLength = 1.0 / sqrt(dot(temp, temp));
+    vec3 halfwayVector = temp * invLength;
     float specularCoefficient = max(0.0, dot(normal, halfwayVector));
     return pow256(specularCoefficient);   
+}
+
+// cel shading
+void celShade(in float numShades, out vec4 finalColor)
+{
+    float brightness = (finalColor.r + finalColor.g + finalColor.b) * 0.6;
+    float shade = floor(brightness * numShades);
+    float multFactor = shade / (numShades * brightness);
+    finalColor *= multFactor;
 }
 
 // calcColor: calculate the color of a pixel given a ray
@@ -170,6 +186,7 @@ float blinnPhongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal
 vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
 {	
     // WORLD
+    // objects in world
     sSphere sphere1;
     initSphere(sphere1, vec3(0.0, 0.0, -4.0), 0.5);
     // values for animation
@@ -181,15 +198,17 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     vec2 pos2 = polarToCartesian(radius, scaledTime + 1.57);
     vec2 pos3 = polarToCartesian(radius, scaledTime + 3.14);
     vec2 pos4 = polarToCartesian(radius, scaledTime + 4.71);
-    // lights
+    // light definitions
     sPointLight light1;
-    initPointLight(light1, vec3(pos1.x, yVal, pos1.y), vec4(1.0), intensity);
+    initPointLight(light1, vec3(pos1.x, yVal, pos1.y), vec4(1.0, 0.0, 0.0, 1.0), intensity);
     sPointLight light2;
-    initPointLight(light2, vec3(pos2.x, yVal, pos2.y), vec4(1.0), intensity);
+    initPointLight(light2, vec3(pos2.x, yVal, pos2.y), vec4(0.0, 1.0, 0.0, 1.0), intensity * 1.75);
     sPointLight light3;
-    initPointLight(light3, vec3(pos3.x, yVal, pos3.y), vec4(1.0), intensity);
+    initPointLight(light3, vec3(pos3.x, yVal, pos3.y), vec4(0.0, 0.0, 1.0, 1.0), intensity);
     sPointLight light4;
-    initPointLight(light4, vec3(pos4.x, yVal, pos4.y), vec4(1.0), intensity);
+    initPointLight(light4, vec3(pos4.x, yVal, pos4.y), vec4(1.0, 0.0, 1.0, 1.0), intensity * 0.5);
+    //sPointLight light1;
+    //initPointLight(light1, vec3(pos1.x, yVal, pos1.y), vec4(1.0, 1.0, 1.0, 1.0), intensity);
     // array of lights to keep things organized
     sPointLight lights[4];
     lights[0] = light1;
@@ -208,19 +227,16 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     {
         
         // Project z-component of the sphere now that we are inside the circle
-        //dp.z = sphere1.radius * sphere1.radius - (dp.x * dp.x + dp.y * dp.y);
         dp.z = rSq - lSq;
         
         vec3 position = sphere1.position.xyz + vec3(dp.x, dp.y, sqrt(dp.z));
-        //vec3 normal = normalize(position - sphere1.position.xyz);
         vec3 normal = (position - sphere1.position.xyz) / sphere1.radius; // length is known so we can contextually optimize
         vec3 viewVector = normalize(vec3(0.0) - position); // optimize
         
-        // LIGHTING
-        
+        // SHADING
         // light and color properties
-        vec4 diffuseColor = vec4(0.65, 0.35, 1.0, 1.0);
-        float ambientIntensity = 0.02;
+        vec4 diffuseColor = vec4(0.8, 0.8, 1.0, 1.0);
+        float ambientIntensity = 0.1;
         vec4 ambientColor = vec4(1.0, 0.9, 0.9, 1.0);
         vec4 specularHighlightColor = vec4(1.0, 0.4, 0.8, 1.0);
         
@@ -235,18 +251,22 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
             
             // next calculate specular intensity (blinn-phong to save on performance)
             float specularIntensity = blinnPhongSpecular(lightVector, viewVector, normal);
+            //specularIntensity = 0.;
             
             // final calculation
             summedColor += (diffuseIntensity * diffuseColor + specularIntensity * specularHighlightColor) * lights[i].color;
         }
         vec4 finalColor = finalAmbient + summedColor;
         
-        //return vec4(normal * 0.5 + 0.5, 1.0);
+        // cel shading
+        //celShade(4.0, finalColor);
+        
         return vec4(finalColor);
     }
     
 	// BACKGROUND
-	const vec3 warm = vec3(0.6, 0.35, 0.7), cool = vec3(0.2, 0.4, 0.8);
+	//const vec3 warm = vec3(0.6, 0.35, 0.7), cool = vec3(0.2, 0.4, 0.8);
+    const vec3 warm = vec3(0.7, 0.6, 0.6), cool = vec3(0.6, 0.6, 1.0);
 	return vec4(mix(warm, cool, rayDirection.y), 1.0);
     //return vec4(0.2);
 }
