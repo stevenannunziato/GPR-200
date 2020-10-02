@@ -1,291 +1,222 @@
 // GLSL STARTER CODE BY DANIEL S. BUCKSTEIN
-// Modified by Steven Annunziato
 
-// asPoint: promote a 3D vector into a 4D vector representing a point (w=1)
-//    point: input 3D vector
-vec4 asPoint(in vec3 point)
+//------------------------------------------------------------
+// TYPE ALIASES & UTILITY FUNCTIONS
+
+// sScalar: alias for a 1D scalar (non-vector)
+#define sScalar float
+
+// sCoord: alias for a 2D coordinate
+#define sCoord vec2
+
+// sDCoord: alias for a 2D displacement or measurement
+#define sDCoord vec2
+
+// sBasis: alias for a 3D basis vector
+#define sBasis vec3
+
+// sPoint: alias for a point/coordinate/location in space
+#define sPoint vec4
+
+// sVector: alias for a vector/displacement/change in space
+#define sVector vec4
+
+
+// color3: alias for a 3D vector representing RGB color
+// 	(this is non-spatial so neither a point nor vector)
+#define color3 vec3
+
+// color4: alias for RGBA color, which is non-spatial
+// 	(this is non-spatial so neither a point nor vector)
+#define color4 vec4
+
+
+// asPoint: promote a 3D vector into a 4D vector 
+//	representing a point in space (w=1)
+//    v: input 3D vector to be converted
+sPoint asPoint(in sBasis v)
 {
-    return vec4(point, 1.0);
+    return sPoint(v, 1.0);
 }
 
-// asOffset: promote a 3D vector into a 4D vector representing an offset (w=0)
-//    offset: input 3D vector
-vec4 asOffset(in vec3 offset)
+// asVector: promote a 3D vector into a 4D vector 
+//	representing a vector through space (w=0)
+//    v: input 3D vector to be converted
+sVector asVector(in sBasis v)
 {
-    return vec4(offset, 0.0);
+    return sVector(v, 0.0);
 }
 
-// calcViewport: calculate the viewing plane (viewport) coordinate
-//    viewport:       output viewing plane coordinate
-//    ndc:            output normalized device coordinate
-//    uv:             output screen-space coordinate
-//    aspect:         output aspect ratio of screen
-//    resolutionInv:  output reciprocal of resolution
-//    viewportHeight: input height of viewing plane
-//    fragCoord:      input coordinate of current fragment (in pixels)
-//    resolution:     input resolution of screen (in pixels)
-void calcViewport(out vec3 viewport, out vec2 ndc, out vec2 uv,
-                  out float aspect, out vec2 resolutionInv,
-                  in float viewportHeight, in float focalLength,
-                  in vec2 fragCoord, in vec2 resolution)
+
+// lengthSq: calculate the squared length of a vector type
+sScalar lengthSq(sDCoord x)
 {
-    // inverse (reciprocal) resolution = 1 / resolution
-    resolutionInv = 1.0 / resolution;
-    
-    // aspect ratio = screen width / screen height
-    aspect = resolution.x * resolutionInv.y;
-
-    // uv = screen-space coordinate = [0, 1) = coord / resolution
-    uv = fragCoord * resolutionInv;
-
-    // ndc = normalized device coordinate = [-1, +1) = uv*2 - 1
-    ndc = uv * 2.0 - 1.0;
-
-    // viewport: x = [-aspect*h/2, +aspect*h/2), y = [-h/2, +h/2), z = -f
-    viewport = vec3(ndc * vec2(aspect, 1.0) * (viewportHeight * 0.5), -focalLength);
+    return dot(x, x);
 }
-
-// calcRay: calculate the ray direction and origin for the current pixel
-//    rayDirection: output direction of ray from origin
-//    rayOrigin:    output origin point of ray
-//    viewport:     input viewing plane coordinate (use above function to calculate)
-//    focalLength:  input distance to viewing plane
-void calcRay(out vec4 rayDirection, out vec4 rayOrigin,
-             in vec3 eyePosition, in vec3 viewport)
+sScalar lengthSq(sBasis x)
 {
-    // ray origin relative to viewer is the origin
-    // w = 1 because it represents a point; can ignore when using
-    rayOrigin = asPoint(eyePosition);
-
-    // ray direction relative to origin is based on viewing plane coordinate
-    // w = 0 because it represents a direction; can ignore when using
-    rayDirection = asOffset(viewport - eyePosition);
+    return dot(x, x);
 }
-
-// structure for a point light
-struct sPointLight
+sScalar lengthSq(sVector x)
 {
-    vec4 center;
-    vec4 color;
-    float intensity;
-};
-void initPointLight(out sPointLight light, in vec3 center, in vec4 color, in float intensity)
-{
-    light.center = asPoint(center);
-    light.color = color;
-    light.intensity = intensity;
-}
-
-// structure for a sphere
-struct sSphere
-{
-    vec4 position;
-    float radius;
-};
-// give sphere some default values
-void initSphere(out sSphere sphere, in vec3 position, in float radius)
-{
-    sphere.position = asPoint(position);
-    sphere.radius = radius;
-}
-
-float lengthSquared(vec2 x) {
     return dot(x, x);
 }
 
-// optimized power increase functions
-float square(float n)
+
+//------------------------------------------------------------
+// VIEWPORT INFO
+
+// sViewport: info about viewport
+//    viewportPoint: location on the viewing plane 
+//							x = horizontal position
+//							y = vertical position
+//							z = plane depth (negative focal length)
+//	  pixelCoord:    position of pixel in image
+//							x = [0, width)	-> [left, right)
+//							y = [0, height)	-> [bottom, top)
+//	  resolution:    resolution of viewport
+//							x = image width in pixels
+//							y = image height in pixels
+//    resolutionInv: resolution reciprocal
+//							x = reciprocal of image width
+//							y = reciprocal of image height
+//	  size:       	 in-scene dimensions of viewport
+//							x = viewport width in scene units
+//							y = viewport height in scene units
+//	  ndc: 			 normalized device coordinate
+//							x = [-1, +1) -> [left, right)
+//							y = [-1, +1) -> [bottom, top)
+// 	  uv: 			 screen-space (UV) coordinate
+//							x = [0, 1) -> [left, right)
+//							y = [0, 1) -> [bottom, top)
+//	  aspectRatio:   aspect ratio of viewport
+//	  focalLength:   distance to viewing plane
+struct sViewport
 {
-    return n * n;
-}
-float pow64(float n)
+    sPoint viewportPoint;
+	sCoord pixelCoord;
+	sDCoord resolution;
+	sDCoord resolutionInv;
+	sDCoord size;
+	sCoord ndc;
+	sCoord uv;
+	sScalar aspectRatio;
+	sScalar focalLength;
+};
+
+// initViewport: calculate the viewing plane (viewport) coordinate
+//    vp: 		      output viewport info structure
+//    viewportHeight: input height of viewing plane
+//    focalLength:    input distance between viewer and viewing plane
+//    fragCoord:      input coordinate of current fragment (in pixels)
+//    resolution:     input resolution of screen (in pixels)
+void initViewport(out sViewport vp,
+                  in sScalar viewportHeight, in sScalar focalLength,
+                  in sCoord fragCoord, in sDCoord resolution)
 {
-    n *= n; // power = 2
-    n *= n; // power = 4
-    n *= n; // power = 8
-    n *= n; // power = 16
-    n *= n; // power = 32
-    n *= n; // power = 64
-    return n;
-}
-float pow256(float n)
-{
-    n *= n; // power = 2
-    n *= n; // power = 4
-    n *= n; // power = 8
-    n *= n; // power = 16
-    n *= n; // power = 32
-    n *= n; // power = 64
-    n *= n; // power = 128
-    n *= n; // power = 256
-    return n;
+    vp.pixelCoord = fragCoord;
+    vp.resolution = resolution;
+    vp.resolutionInv = 1.0 / vp.resolution;
+    vp.aspectRatio = vp.resolution.x * vp.resolutionInv.y;
+    vp.focalLength = focalLength;
+    vp.uv = vp.pixelCoord * vp.resolutionInv;
+    vp.ndc = vp.uv * 2.0 - 1.0;
+    vp.size = sDCoord(vp.aspectRatio, 1.0) * viewportHeight;
+    vp.viewportPoint = asPoint(sBasis(vp.ndc * vp.size * 0.5, -vp.focalLength));
 }
 
-// polar to cartesian function
-vec2 polarToCartesian(in float radius, in float theta)
+
+//------------------------------------------------------------
+// RAY INFO
+
+// sRay: ray data structure
+//	  origin: origin point in scene
+//    direction: direction vector in scene
+struct sRay
 {
-    return vec2(radius * cos(theta), radius * sin(theta));
+    sPoint origin;
+    sVector direction;
+};
+
+// initRayPersp: initialize perspective ray
+//    ray: 		   output ray
+//    eyePosition: position of viewer in scene
+//    viewport:    input viewing plane offset
+void initRayPersp(out sRay ray,
+             	  in sBasis eyePosition, in sBasis viewport)
+{
+    // ray origin relative to viewer is the origin
+    // w = 1 because it represents a point; can ignore when using
+    ray.origin = asPoint(eyePosition);
+
+    // ray direction relative to origin is based on viewing plane coordinate
+    // w = 0 because it represents a direction; can ignore when using
+    ray.direction = asVector(viewport - eyePosition);
 }
 
-// calculations for diffuse light scattering
-float calcDiffuse(in sPointLight light, in vec3 position, in vec3 normal, out vec3 lightVector)
+// initRayOrtho: initialize orthographic ray
+//    ray: 		   output ray
+//    eyePosition: position of viewer in scene
+//    viewport:    input viewing plane offset
+void initRayOrtho(out sRay ray,
+             	  in sBasis eyePosition, in sBasis viewport)
 {
-    // lambertian reflectance
-    //lightVector = light.center.xyz - position;
-    float lightDist = sqrt(dot(lightVector, lightVector));
-    float invDist = 1.0 / lightDist;
-    lightVector *= invDist; // light vector is now normalized
-    float diffuseCoefficient = max(0.0, dot(normal, lightVector));
-    // attenuation (light falloff)
-    float invIntensity = 1.0 / light.intensity;
-    float attenuatedIntensity = 1.0 / (1.0 + (lightDist * invIntensity) + square(lightDist * invIntensity));
-    return diffuseCoefficient * attenuatedIntensity;
-}
-// calculations for specular highlights
-float phongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
-{
-    // phong reflectance
-    vec3 reflectedLight = reflect(-lightVector, normal);
-    float specularCoefficient = max(0.0, dot(viewVector, reflectedLight));
-    return pow64(specularCoefficient);
-}
-float blinnPhongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
-{
-    // blinn-phong reflectance
-    vec3 temp = lightVector + viewVector;
-    float invLength = 1.0 / sqrt(dot(temp, temp));
-    vec3 halfwayVector = temp * invLength;
-    float specularCoefficient = max(0.0, dot(normal, halfwayVector));
-    return pow256(specularCoefficient);   
+    // offset eye position to point on plane at the same depth
+    initRayPersp(ray, eyePosition + sBasis(viewport.xy, 0.0), viewport);
 }
 
-// cel shading
-void celShade(in float numShades, out vec4 finalColor)
-{
-    // method of cel shading adapted from here:
-    // https://www.shadertoy.com/view/ldlfRf
-    float brightness = (finalColor.r + finalColor.g + finalColor.b) * 0.6;
-    float shade = floor(brightness * numShades);
-    float multFactor = shade / (numShades * brightness);
-    finalColor *= multFactor;
-}
 
-// calcColor: calculate the color of a pixel given a ray
-//    rayDirection: input ray direction
-//    rayOrigin:    input ray origin
-vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
-{	
-    // WORLD
-    // objects in world
-    sSphere sphere1;
-    initSphere(sphere1, vec3(0.0, 0.0, -4.0), 0.5);
-    // values for animation
-    float intensity = 20.0;
-    float yVal = 8.0 * sin(iTime * 0.25);
-    float radius = 8.0;
-    float scaledTime = iTime * 1.0;
-    vec2 pos1 = polarToCartesian(radius, scaledTime);
-    vec2 pos2 = polarToCartesian(radius, scaledTime + 1.57);
-    vec2 pos3 = polarToCartesian(radius, scaledTime + 3.14);
-    vec2 pos4 = polarToCartesian(radius, scaledTime + 4.71);
-    // light definitions
-    sPointLight light1;
-    initPointLight(light1, vec3(pos1.x, yVal, pos1.y - 4.0), vec4(1.0, 0.0, 0.0, 1.0), intensity);
-    sPointLight light2;
-    initPointLight(light2, vec3(pos2.x, yVal, pos2.y - 4.0), vec4(0.0, 1.0, 0.0, 1.0), intensity * 1.75);
-    sPointLight light3;
-    initPointLight(light3, vec3(pos3.x, yVal, pos3.y - 4.0), vec4(0.0, 0.0, 1.0, 1.0), intensity * 0.8);
-    sPointLight light4;
-    initPointLight(light4, vec3(pos4.x, yVal, pos4.y - 4.0), vec4(1.0, 0.0, 1.0, 1.0), intensity * 0.5);
-    // cel shading lights
-    sPointLight celLight1;
-    initPointLight(celLight1, vec3(pos1.x, yVal, pos1.y - 4.0), vec4(1.0, 1.0, 1.0, 1.0), intensity);
-    // array of lights to keep things organized
-    sPointLight lights[4];
-    lights[0] = light1;
-    lights[1] = light2;
-    lights[2] = light3;
-    lights[3] = light4;
-    // ------------------
-    //lights[0] = celLight1;
+//------------------------------------------------------------
+// RENDERING FUNCTIONS
+
+// calcColor: calculate the color of current pixel
+//	  vp:  input viewport info
+//	  ray: input ray info
+color4 calcColor(in sViewport vp, in sRay ray)
+{
+    // test inputs
+    //return color4(ray.direction.xyz == vp.viewportPoint.xyz); // pass
+    //return color4(lengthSq(vp.viewportPoint.xy) >= 0.25); // pass
+    //return color4(vp.uv, 0.0, 0.0);
+    //return color4(vp.ndc, 0.0, 0.0);
+    //return vp.viewportPoint;
     
-    // determine if the ray lies inside a circle on the screen
-    vec3 dp;
-    dp.xy = rayDirection.xy - sphere1.position.xy;
-    float lSq = lengthSquared(dp.xy);
-    float rSq = sphere1.radius * sphere1.radius;
+    // constant color
+    //return vec4(1.0, 0.0, 0.5, 1.0);
     
-    // inside the circle
-    if (lSq <= rSq)
-    {
-        
-        // Project z-component of the sphere now that we are inside the circle
-        dp.z = rSq - lSq;
-        
-        vec3 position = sphere1.position.xyz + vec3(dp.x, dp.y, sqrt(dp.z));
-        vec3 normal = (position - sphere1.position.xyz) / sphere1.radius; // length is known so we can contextually optimize
-        vec3 viewVector = -position / sqrt(dot(position, position));
-        
-        // SHADING
-        // light and color properties
-        vec4 diffuseColor = vec4(0.8, 0.8, 1.0, 1.0);
-        float ambientIntensity = 0.1;
-        vec4 ambientColor = vec4(1.0, 0.9, 0.9, 1.0);
-        vec4 specularHighlightColor = vec4(1.0, 0.4, 0.8, 1.0);
-        
-        // final calculation
-        vec4 finalAmbient = ambientIntensity * ambientColor;
-        vec4 summedColor = vec4(0.0);
-        for (int i = lights.length() - 1; i >= 0; --i) {
-            
-            vec3 lightVector = lights[i].center.xyz - position;
-            
-            // first calculate diffuse intensity
-			float diffuseIntensity = calcDiffuse(lights[i], position, normal, lightVector);
-            
-            // next calculate specular intensity
-            float specularIntensity = blinnPhongSpecular(lightVector, viewVector, normal);
-            //specularIntensity = 0.0;
-            
-            // final calculation
-            summedColor += (diffuseIntensity * diffuseColor + specularIntensity * specularHighlightColor) * lights[i].color;
-        }
-        vec4 finalColor = finalAmbient + summedColor;
-        
-        // cel shading
-        //celShade(4.0, finalColor);
-        
-        return vec4(finalColor);
-    }
-    
-	// BACKGROUND
-	//const vec3 warm = vec3(0.6, 0.35, 0.7), cool = vec3(0.2, 0.4, 0.8);
-    const vec3 warm = vec3(0.7, 0.6, 0.6), cool = vec3(0.6, 0.6, 1.0);
-	return vec4(mix(warm, cool, rayDirection.y), 1.0);
-    //return vec4(0.2);
+    // full-screen texture
+    //sampler2D tex = iChannel0;
+    //sCoord loc = vp.uv; // relative to display (output)
+    sCoord px = vp.pixelCoord;
+    sDCoord res = iChannelResolution[0].xy;
+    sScalar ratio = res.y * vp.resolutionInv.y;
+    sCoord loc = px / res; // relative to texture (input)
+    loc = ratio * loc + 0.25; // zoom + shift
+    return texture(iChannel0, loc);			// color
+    //return texture(iChannel0, loc).xxxx;	// greyscale
 }
+
+
+//------------------------------------------------------------
+// SHADERTOY MAIN
 
 // mainImage: process the current pixel (exactly one call per pixel)
 //    fragColor: output final color for current pixel
 //    fragCoord: input location of current pixel in image (in pixels)
-void mainImage(out vec4 fragColor, in vec2 fragCoord)
+void mainImage(out color4 fragColor, in sCoord fragCoord)
 {
-    // viewing plane (viewport) info
-    vec3 viewport;
-    vec2 ndc, uv, resolutionInv;
-    float aspect;
-    const float viewportHeight = 2.0, focalLength = 1.0;
+    // viewing plane (viewport) inputs
+    const sBasis eyePosition = sBasis(0.0);
+    const sScalar viewportHeight = 2.0, focalLength = 1.5;
+    
+    // viewport info
+    sViewport vp;
 
     // ray
-    vec4 rayDirection, rayOrigin;
-
-    // setup
-    fragColor = vec4(0.0);
+    sRay ray;
     
-    calcViewport(viewport, ndc, uv, aspect, resolutionInv,
-    	             viewportHeight, focalLength,
-    	             fragCoord, iResolution.xy);
-    calcRay(rayDirection, rayOrigin, vec3(0.0), viewport);
-    
-    fragColor += calcColor(rayDirection, rayOrigin);
+    // render
+    initViewport(vp, viewportHeight, focalLength, fragCoord, iResolution.xy);
+    initRayPersp(ray, eyePosition, vp.viewportPoint.xyz);
+    fragColor += calcColor(vp, ray);
 }
