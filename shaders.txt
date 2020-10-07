@@ -169,13 +169,31 @@ void initRayOrtho(out sRay ray,
 //------------------------------------------------------------
 // RENDERING FUNCTIONS
 
-// distortion
+// wave
 sCoord wave(in sCoord originalLocation)
 {
     sCoord deformedLocation = originalLocation;
     
-    // shift coordinate by a sine function of the x location
+    // shift coordinate by a sine function of the location
     deformedLocation.y += sin(originalLocation.x * 5.0 + iTime * 2.0) * 0.06;
+    deformedLocation.x += sin(originalLocation.y * 5.0 + iTime * 2.0) * 0.06;
+    
+    // return deformed coordinate
+    return deformedLocation;
+}
+
+// ripple
+// adapted from here: http://adrianboeing.blogspot.com/2011/02/ripple-effect-in-webgl.html
+sCoord ripple(in sCoord originalLocation, in sViewport vp)
+{
+    // map to [-1, 1]
+    sCoord uv = originalLocation * 2.0 - 1.0;
+    
+    // find distance from center
+    float dist = length(uv);
+    
+    // deform based on sombrero function
+    vec2 deformedLocation = vp.uv + (uv / dist) * sin(dist * 20.0 - iTime * 4.0) * 0.01;
     
     // return deformed coordinate
     return deformedLocation;
@@ -210,19 +228,26 @@ color4 crossFadeEffect(in sViewport vp)
     
 }
 
-// distortion: waves
-color4 waveEffect(in sViewport vp)
+// distortion
+color4 distortionEffect(in sViewport vp)
 {
     // get normalized coordinates
     sCoord px = vp.pixelCoord;
     
-    // get color for texture 1
+    // get location to sample from texture
     sDCoord res = iChannelResolution[0].xy;
+    sCoord loc = px / res;
+    
+    // zoom to fit the screen's height
     sScalar ratio = res.y * vp.resolutionInv.y;
-    sCoord loc = px / res; // scale to fit the screen's height
-    loc = ratio * loc; // zoom + shift
+    loc = ratio * loc;
+    
+    // shift to be in the center of the screen (note: not exactly centered)
+    loc -= vec2(0.4, 0.0);
+    
     
     // apply visual distortion
+    loc = ripple(loc, vp);
     loc = wave(loc);
     
     // return final color read from texture
@@ -257,8 +282,8 @@ color4 calcColor(in sViewport vp, in sRay ray)
     // cross-fade effect
     //return crossFadeEffect(vp);
     
-    // distortion: waves
-    return waveEffect(vp);
+    // distortion
+    return distortionEffect(vp);
     
     // cube map
     //return cubeMapEffect(ray);
