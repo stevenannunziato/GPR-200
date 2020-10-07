@@ -195,12 +195,39 @@ sCoord ripple(in sCoord originalLocation, in sViewport vp)
     sCoord uv = originalLocation * 2.0 - 1.0;
     
     // find distance from center
-    float dist = length(uv);
+    float dist = dot(uv, uv); // distance squared
+    float invLength = 1.0 / sqrt(dist);
+    dist *= invLength;
     
     // deform based on sombrero function
     vec2 deformedLocation = vp.uv + (uv / dist) * sin(dist * 20.0 - iTime * 4.0) * 0.01;
     
     // return deformed coordinate
+    return deformedLocation;
+}
+
+// black hole
+sCoord blackHole(in sCoord originalLocation)
+{
+    // map to [-1, 1]
+    sCoord deformedLocation = originalLocation * 2.0 - 1.0;
+    
+    // convert to polar
+    float radius = dot(deformedLocation, deformedLocation);
+    float invLength = 1.0 / sqrt(radius);
+    radius *= invLength;
+    float theta = atan(deformedLocation.y, deformedLocation.x);
+    
+    // black hole effect
+    radius -= 0.32;
+    
+    // convert back to cartesian
+    deformedLocation.x = radius * cos(theta);
+    deformedLocation.y = radius * sin(theta);
+    
+    // scroll
+    deformedLocation += vec2(iTime * 0.5, 0.0);
+    
     return deformedLocation;
 }
 
@@ -239,7 +266,7 @@ color4 crossFadeEffect(in sViewport vp)
     sScalar ratio = res.y * vp.resolutionInv.y;
     sCoord loc = px / res; // scale to fit the screen's height
     loc = ratio * loc; // zoom + shift
-    // read final color from texture
+    // read color from texture
     color4 color1 = texture(iChannel0, loc);
     
     // get color for texture 2
@@ -247,7 +274,7 @@ color4 crossFadeEffect(in sViewport vp)
     ratio = res.y * vp.resolutionInv.y;
     loc = px / res; // scale to fit the screen's height
     loc = ratio * loc; // zoom + shift
-    // read final color from texture
+    // read color from texture
     color4 color2 = texture(iChannel2, loc);
     
     // mix colors based on time
@@ -270,9 +297,8 @@ color4 distortionEffect(in sViewport vp)
     sScalar ratio = res.y * vp.resolutionInv.y;
     loc = ratio * loc;
     
-    // shift to be in the center of the screen (note: not exactly centered)
+    // shift to be in the center of the screen (note: not exact)
     loc -= vec2(0.4, 0.0);
-    
     
     // apply visual distortions
     loc = ripple(loc, vp);
@@ -280,6 +306,41 @@ color4 distortionEffect(in sViewport vp)
     
     // return final color read from texture
     return texture(iChannel0, loc);
+}
+
+// black hole
+color4 blackHoleEffect(in sViewport vp)
+{
+    color4 finalColor;
+    
+    // get normalized coordinates
+    sCoord px = vp.pixelCoord;
+    
+    // get location to sample from texture
+    sDCoord res = iChannelResolution[0].xy;
+    sCoord loc = px / res;
+    
+    // zoom to fit the screen's height
+    sScalar ratio = res.y * vp.resolutionInv.y;
+    loc = ratio * loc;
+    
+    // shift to be in the center of the screen (note: not exact)
+    loc -= vec2(0.39, 0.0);
+    
+    // apply visual distortions
+    loc = blackHole(loc);
+    
+    // get final color read from texture
+    finalColor = texture(iChannel0, loc);
+    
+    // draw the actual black circle part
+    vec2 center = vp.resolution * 0.5;
+    float radius = vp.resolution.y * 0.11;
+    if (distance(center, vp.pixelCoord) < radius)
+        finalColor = vec4(0.0);
+    
+  	// return the final color
+    return finalColor;
 }
 
 color4 lightingEffect(in sViewport vp)
@@ -356,6 +417,7 @@ color4 calcColor(in sViewport vp, in sRay ray)
     
     // distortion
     //return distortionEffect(vp);
+    //return blackHoleEffect(vp);
     
     // Lambertian reflectance
     //return lightingEffect(vp);
