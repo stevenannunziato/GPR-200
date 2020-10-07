@@ -169,6 +169,11 @@ void initRayOrtho(out sRay ray,
 //------------------------------------------------------------
 // RENDERING FUNCTIONS
 
+float square(in float a)
+{
+    return a * a;
+}
+
 // wave
 sCoord wave(in sCoord originalLocation)
 {
@@ -199,6 +204,30 @@ sCoord ripple(in sCoord originalLocation, in sViewport vp)
     return deformedLocation;
 }
 
+// lighting and shading effect
+float calcLighting(in sViewport vp)
+{
+    // set up reference variables
+    vec3 lightPos = vec3(sin(iTime), cos(iTime), -vp.focalLength + 0.2);
+    float lightIntensity = 200.0;
+    vec4 position = vp.viewportPoint;
+    vec3 normal = vec3(0.0, 0.0, 1.0);
+    
+    // lambertian reflectance
+    vec3 lightVector = lightPos - position.xyz;
+    float lightDist = sqrt(dot(lightVector, lightVector));
+    float invDist = 1.0 / lightDist;
+    lightVector *= invDist; // light vector is now normalized
+    float diffuseCoefficient = max(0.0, dot(normal, lightVector));
+    // attenuation (light falloff)
+    float invIntensity = 1.0 / lightIntensity;
+    float attenuatedIntensity = 1.0 / (1.0 + (lightDist * invIntensity) + square(lightDist * invIntensity));
+    return diffuseCoefficient * attenuatedIntensity;
+}
+
+//---------------------------
+// Main image effects
+
 // cross fade
 color4 crossFadeEffect(in sViewport vp)
 {
@@ -222,8 +251,7 @@ color4 crossFadeEffect(in sViewport vp)
     color4 color2 = texture(iChannel2, loc);
     
     // mix colors based on time
-    float t = clamp(sin(iTime * 0.5), -1.0, 1.0);
-    t = (t + 1.0) * 0.5;
+    float t = clamp((cos(iTime * 0.5) + 1.0) * 0.7 - 0.2, 0.0, 1.0);
     return mix(color1, color2, t);
     
 }
@@ -246,12 +274,26 @@ color4 distortionEffect(in sViewport vp)
     loc -= vec2(0.4, 0.0);
     
     
-    // apply visual distortion
+    // apply visual distortions
     loc = ripple(loc, vp);
     loc = wave(loc);
     
     // return final color read from texture
     return texture(iChannel0, loc);
+}
+
+color4 lightingEffect(in sViewport vp)
+{
+    // get normalized coordinates
+    sCoord px = vp.pixelCoord;
+    
+    // get color for texture 1
+    sDCoord res = iChannelResolution[3].xy;
+    sScalar ratio = res.y * vp.resolutionInv.y;
+    sCoord loc = px / res; // scale to fit the screen's height
+    loc = ratio * loc; // zoom + shift
+    // read final color from texture
+    return texture(iChannel3, loc) * calcLighting(vp);
 }
 
 // cube map
@@ -283,10 +325,13 @@ color4 calcColor(in sViewport vp, in sRay ray)
     //return crossFadeEffect(vp);
     
     // distortion
-    return distortionEffect(vp);
+    //return distortionEffect(vp);
     
     // cube map
     //return cubeMapEffect(ray);
+    
+    // Lambertian reflectance
+    return lightingEffect(vp);
 }
 
 
