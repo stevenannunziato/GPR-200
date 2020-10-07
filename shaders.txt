@@ -173,7 +173,11 @@ void initRayOrtho(out sRay ray,
 sCoord wave(in sCoord originalLocation)
 {
     sCoord deformedLocation = originalLocation;
+    
+    // shift coordinate by a sine function of the x location
     deformedLocation.y += sin(originalLocation.x * 5.0 + iTime * 2.0) * 0.06;
+    
+    // return deformed coordinate
     return deformedLocation;
 }
 
@@ -188,6 +192,7 @@ color4 crossFadeEffect(in sViewport vp)
     sScalar ratio = res.y * vp.resolutionInv.y;
     sCoord loc = px / res; // scale to fit the screen's height
     loc = ratio * loc; // zoom + shift
+    // read final color from texture
     color4 color1 = texture(iChannel0, loc);
     
     // get color for texture 2
@@ -195,6 +200,7 @@ color4 crossFadeEffect(in sViewport vp)
     ratio = res.y * vp.resolutionInv.y;
     loc = px / res; // scale to fit the screen's height
     loc = ratio * loc; // zoom + shift
+    // read final color from texture
     color4 color2 = texture(iChannel2, loc);
     
     // mix colors based on time
@@ -202,6 +208,25 @@ color4 crossFadeEffect(in sViewport vp)
     t = (t + 1.0) * 0.5;
     return mix(color1, color2, t);
     
+}
+
+// distortion: waves
+color4 waveEffect(in sViewport vp)
+{
+    // get normalized coordinates
+    sCoord px = vp.pixelCoord;
+    
+    // get color for texture 1
+    sDCoord res = iChannelResolution[0].xy;
+    sScalar ratio = res.y * vp.resolutionInv.y;
+    sCoord loc = px / res; // scale to fit the screen's height
+    loc = ratio * loc; // zoom + shift
+    
+    // apply visual distortion
+    loc = wave(loc);
+    
+    // return final color read from texture
+    return texture(iChannel0, loc);
 }
 
 // cube map
@@ -229,8 +254,11 @@ color4 calcColor(in sViewport vp, in sRay ray)
     // constant color
     //return vec4(1.0, 0.0, 0.5, 1.0);
     
-    // full-screen texture
-    return crossFadeEffect(vp);
+    // cross-fade effect
+    //return crossFadeEffect(vp);
+    
+    // distortion: waves
+    return waveEffect(vp);
     
     // cube map
     //return cubeMapEffect(ray);
