@@ -1,4 +1,5 @@
 // GLSL STARTER CODE BY DANIEL S. BUCKSTEIN
+// Modified by Steven Annunziato
 
 //------------------------------------------------------------
 // TYPE ALIASES & UTILITY FUNCTIONS
@@ -168,28 +169,39 @@ void initRayOrtho(out sRay ray,
 //------------------------------------------------------------
 // RENDERING FUNCTIONS
 
-// cross fade
-color4 crossFadeEffect(in sViewport vp)
-{
-    //sampler2D tex = iChannel0;
-    //sCoord loc = vp.uv; // relative to display (output)
-    sCoord px = vp.pixelCoord;
-    sDCoord res = iChannelResolution[0].xy;
-    sScalar ratio = res.y * vp.resolutionInv.y;
-    sCoord loc = px / res; // relative to texture (input)
-    loc = ratio * loc + 0.1 * vec2(iTime, 0.0); // zoom + shift
-	//loc = wave(loc);
-    return texture(iChannel0, loc);			// color
-    //return texture(iChannel0, loc).xxxx;	// greyscale
-    
-}
-
 // distortion
 sCoord wave(in sCoord originalLocation)
 {
     sCoord deformedLocation = originalLocation;
-    deformedLocation.y += sin(originalLocation.x + iTime * 2.0) * 0.1;
+    deformedLocation.y += sin(originalLocation.x * 5.0 + iTime * 2.0) * 0.06;
     return deformedLocation;
+}
+
+// cross fade
+color4 crossFadeEffect(in sViewport vp)
+{
+    // get normalized coordinates
+    sCoord px = vp.pixelCoord;
+    
+    // get color for texture 1
+    sDCoord res = iChannelResolution[0].xy;
+    sScalar ratio = res.y * vp.resolutionInv.y;
+    sCoord loc = px / res; // scale to fit the screen's height
+    loc = ratio * loc; // zoom + shift
+    color4 color1 = texture(iChannel0, loc);
+    
+    // get color for texture 2
+    res = iChannelResolution[2].xy;
+    ratio = res.y * vp.resolutionInv.y;
+    loc = px / res; // scale to fit the screen's height
+    loc = ratio * loc; // zoom + shift
+    color4 color2 = texture(iChannel2, loc);
+    
+    // mix colors based on time
+    float t = clamp(sin(iTime * 0.5), -1.0, 1.0);
+    t = (t + 1.0) * 0.5;
+    return mix(color1, color2, t);
+    
 }
 
 // cube map
