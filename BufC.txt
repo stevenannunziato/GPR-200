@@ -9,16 +9,16 @@ color4 gaussianBlur(in sCoord fragCoord, in sampler2D tex, in vec2 resolution)
  	// cache inverse resolution
     vec2 invResolution = 1.0 / resolution;
     
-    // define gaussian convolution kernel
+    // define gaussian convolution kernel 5x5
     const int rowSize = 5;
     const float invRowSize = 1.0 / float(rowSize);
     const int size = rowSize * rowSize;
     const float invSum = 1.0 / 256.0;
-    float kernel[25] = float[25](1.0, 4.0, 6.0, 4.0, 1.0,
-                      		   4.0, 16.0, 24.0, 16.0, 4.0,
-                       		   6.0, 24.0, 36.0, 24.0, 6.0,
-                               4.0, 16.0, 24.0, 16.0, 4.0,
-                               1.0, 4.0, 6.0, 4.0, 1.0);
+    float kernel[size] = float[size](1.0, 4.0, 6.0, 4.0, 1.0,
+                      		   		 4.0, 16.0, 24.0, 16.0, 4.0,
+                       		   		 6.0, 24.0, 36.0, 24.0, 6.0,
+                               		 4.0, 16.0, 24.0, 16.0, 4.0,
+                               		 1.0, 4.0, 6.0, 4.0, 1.0);
     
     // sum pixel values around current pixel
     color4 sum;
@@ -26,7 +26,9 @@ color4 gaussianBlur(in sCoord fragCoord, in sampler2D tex, in vec2 resolution)
     {
         for (int j = 0; j < rowSize; ++j) {
             // get appropriate UV value and color for current pixel
-            vec2 uv = vec2(fragCoord.x + float(j) - 1.0, fragCoord.y + float(i) * invRowSize - 1.0) * invResolution;
+            float curX = fragCoord.x - floor(float(rowSize) * 0.5) + float(j);
+            float curY = fragCoord.y - floor(float(rowSize) * 0.5) + float(i) * invRowSize;
+            vec2 uv = vec2(curX, curY) * invResolution;
             sum += texture(tex, uv) * kernel[i + j];
         }
     }
