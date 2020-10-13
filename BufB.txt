@@ -1,4 +1,46 @@
-void mainImage( out vec4 fragColor, in vec2 fragCoord )
+// GLSL STARTER CODE BY DANIEL S. BUCKSTEIN
+//  -> IMAGE TAB (final)
+
+//------------------------------------------------------------
+// SHADERTOY MAIN
+
+// code adapted from OpenGL Superbible page 486
+// https://f.usemind.org/files/b/1/UseMind.ORG_comprehensive-tutorial-and-reference_2015__.pdf
+color4 brightPass(color4 fragColor)
 {
-    fragColor = vec4(0.0,0.0,1.0,1.0);
+    // calculate luminance for this pixel
+    vec3 conversion = vec3(0.299, 0.587, 0.114);
+    float luminance = dot(fragColor.rgb, conversion);
+    
+    // apply calculation based on luminance
+    color4 newColor = fragColor * 2.0 * smoothstep(0.4, 1.6, luminance);
+    newColor.a = 1.0;
+    return newColor;
+}
+
+// mainImage: process the current pixel (exactly one call per pixel)
+//    fragColor: output final color for current pixel
+//    fragCoord: input location of current pixel in image (in pixels)
+void mainImage(out color4 fragColor, in sCoord fragCoord)
+{
+    // setup
+    // test UV for input image
+    sCoord uv = fragCoord / iChannelResolution[0].xy;
+    
+    // corner sample
+    //sCoord uvUpRight = (fragCoord + 0.5) / iChannelResolution[0].xy;
+    // texture space: [0, 1)
+    // texture is 100x100 px, resInv = 0.01, 0.01
+    // represents pixel size in texture space
+    sDCoord pixelSizeInTextureSpace = 1.0 / iChannelResolution[0].xy;
+    sCoord uvUpRight = (fragCoord + 0.5) * pixelSizeInTextureSpace;
+    
+    // TESTING
+    // set iChannel0 to 'Misc/Buffer A' and fetch sample
+    color4 textureSample = texture(iChannel0, uv);
+    fragColor = brightPass(textureSample);
+    //fragColor = texture(iChannel1, uv);
+    
+    // test
+    //fragColor = vec4(fract(fragCoord.x));
 }
