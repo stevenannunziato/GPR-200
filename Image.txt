@@ -18,15 +18,31 @@ void mainImage(out color4 fragColor, in sCoord fragCoord)
     // texture space: [0, 1)
     // texture is 100x100 px, resInv = 0.01, 0.01
     // represents pixel size in texture space
-    sDCoord pixelSizeInTextureSpace = 1.0 / iChannelResolution[0].xy;
-    sCoord uvUpRight = (fragCoord + 0.5) * pixelSizeInTextureSpace;
+    //sDCoord pixelSizeInTextureSpace = 1.0 / iChannelResolution[0].xy;
+    //sCoord uvUpRight = (fragCoord + 0.5) * pixelSizeInTextureSpace;
     
     // TESTING
     // set iChannel0 to 'Misc/Buffer A' and fetch sample
     //fragColor = texture(iChannel0, uv);
     //fragColor = texture(iChannel1, uv);
-    fragColor = texture(iChannel2, uv);
     
-    // test
-    //fragColor = vec4(fract(fragCoord.x));
+    // Create final image
+    color4 sceneColor = texture(iChannel0, uv);
+    color4 bloomColor = texture(iChannel2, uv);
+    
+    // default individual layers
+    //fragColor = sceneColor;
+    //fragColor = bloomColor;
+    
+    // add
+    //fragColor = sceneColor + bloomColor;
+    
+    // mix
+    //fragColor = mix(sceneColor, bloomColor, 0.5);
+    
+    // screen
+    fragColor = vec4(1.0) - (vec4(1.0) - sceneColor) * (vec4(1.0) - bloomColor);
+    
+    // multiply
+    //fragColor = sceneColor * bloomColor;
 }

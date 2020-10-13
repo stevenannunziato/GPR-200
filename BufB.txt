@@ -1,8 +1,9 @@
 // GLSL STARTER CODE BY DANIEL S. BUCKSTEIN
-//  -> IMAGE TAB (final)
+// Modified by Steven Annunziato
+//  -> BUFFER B TAB (scene)
 
 //------------------------------------------------------------
-// SHADERTOY MAIN
+// RENDERING FUNCTIONS
 
 // code adapted from OpenGL Superbible page 486
 // https://f.usemind.org/files/b/1/UseMind.ORG_comprehensive-tutorial-and-reference_2015__.pdf
@@ -13,10 +14,13 @@ color4 brightPass(color4 fragColor)
     float luminance = dot(fragColor.rgb, conversion);
     
     // apply calculation based on luminance
-    color4 newColor = fragColor * 2.0 * smoothstep(0.4, 1.6, luminance);
+    color4 newColor = fragColor * 2.5 * smoothstep(0.45, 1.6, luminance);
     newColor.a = 1.0;
     return newColor;
 }
+
+//------------------------------------------------------------
+// SHADERTOY MAIN
 
 // mainImage: process the current pixel (exactly one call per pixel)
 //    fragColor: output final color for current pixel

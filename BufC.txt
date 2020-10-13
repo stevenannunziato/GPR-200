@@ -1,5 +1,6 @@
 // GLSL STARTER CODE BY DANIEL S. BUCKSTEIN
-//  -> IMAGE TAB (final)
+// Modified by Steven Annunziato
+//  -> BUFFER A TAB (scene)
 
 //------------------------------------------------------------
 // RENDERING FUNCTIONS

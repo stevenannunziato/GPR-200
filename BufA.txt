@@ -1,4 +1,5 @@
 // GLSL STARTER CODE BY DANIEL S. BUCKSTEIN
+// Modified by Steven Annunziato
 //  -> BUFFER A TAB (scene)
 
 //------------------------------------------------------------
