@@ -1,0 +1,66 @@
+// GLSL STARTER CODE BY DANIEL S. BUCKSTEIN
+//  -> IMAGE TAB (final)
+
+//------------------------------------------------------------
+// RENDERING FUNCTIONS
+
+color4 gaussianBlur(in sCoord fragCoord, in sampler2D tex, in vec2 resolution)
+{
+ 	// cache inverse resolution
+    vec2 invResolution = 1.0 / resolution;
+    
+    // define gaussian convolution kernel
+    const int rowSize = 5;
+    const float invRowSize = 1.0 / float(rowSize);
+    const int size = rowSize * rowSize;
+    const float invSum = 1.0 / 256.0;
+    float kernel[25] = float[25](1.0, 4.0, 6.0, 4.0, 1.0,
+                      		   4.0, 16.0, 24.0, 16.0, 4.0,
+                       		   6.0, 24.0, 36.0, 24.0, 6.0,
+                               4.0, 16.0, 24.0, 16.0, 4.0,
+                               1.0, 4.0, 6.0, 4.0, 1.0);
+    
+    // sum pixel values around current pixel
+    color4 sum;
+    for (int i = 0; i < size; i += rowSize)
+    {
+        for (int j = 0; j < rowSize; ++j) {
+            // get appropriate UV value and color for current pixel
+            vec2 uv = vec2(fragCoord.x + float(j) - 1.0, fragCoord.y + float(i) * invRowSize - 1.0) * invResolution;
+            sum += texture(tex, uv) * kernel[i + j];
+        }
+    }
+    sum *= invSum;
+    return sum;
+    
+}
+
+//------------------------------------------------------------
+// SHADERTOY MAIN
+
+// mainImage: process the current pixel (exactly one call per pixel)
+//    fragColor: output final color for current pixel
+//    fragCoord: input location of current pixel in image (in pixels)
+void mainImage(out color4 fragColor, in sCoord fragCoord)
+{
+    // setup
+    // test UV for input image
+    sCoord uv = fragCoord / iChannelResolution[0].xy;
+    
+    // corner sample
+    //sCoord uvUpRight = (fragCoord + 0.5) / iChannelResolution[0].xy;
+    // texture space: [0, 1)
+    // texture is 100x100 px, resInv = 0.01, 0.01
+    // represents pixel size in texture space
+    sDCoord pixelSizeInTextureSpace = 1.0 / iChannelResolution[0].xy;
+    sCoord uvUpRight = (fragCoord + 0.5) * pixelSizeInTextureSpace;
+    
+    // TESTING
+    // set iChannel0 to 'Misc/Buffer A' and fetch sample
+    //fragColor = texture(iChannel0, uv);
+    
+ 	fragColor = gaussianBlur(fragCoord, iChannel0, iChannelResolution[0].xy);
+    
+    // test
+    //fragColor = vec4(fract(fragCoord.x));
+}
