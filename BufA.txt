@@ -22,20 +22,26 @@ color4 cubeMapEffect(in sViewport vp, in sRay ray)
     vec3 rot = vec3(-mouseDir.y, mouseDir.x + 1.57, 0.0);
 	
     // rotate based on time
-   // vec3 rot = vec3(0.0, iTime * -0.25, 0.0);
+    //vec3 rot = vec3(0.0, iTime * -0.25, 0.0);
     
     // define rotation matrices
     // x
+    float a = cos(rot.x);
+    float b = sin(rot.x);
     mat3 rotX = mat3(1.0, 0.0, 0.0,					// column 1
-                     0.0, cos(rot.x), sin(rot.x),	// column 2
-                     0.0, -sin(rot.x), cos(rot.x));	// column 3
+                     0.0, a, b,	// column 2
+                     0.0, -b, a);	// column 3
     // y
-    mat3 rotY = mat3(cos(rot.y), 0.0, -sin(rot.y),	// column 1
+    float c = cos(rot.y);
+    float d = sin(rot.y);
+    mat3 rotY = mat3(c, 0.0, -d,	// column 1
                      0.0, 1.0, 0.0,					// column 2
-                     sin(rot.y), 0, cos(rot.y));	// column 3
+                     d, 0, c);	// column 3
     // z
-    mat3 rotZ = mat3(cos(rot.z), sin(rot.z), 0.0,	// column 1
-                     -sin(rot.z), cos(rot.z), 0,	// column 2
+    float e = cos(rot.z);
+    float f = sin(rot.z);
+    mat3 rotZ = mat3(e, f, 0.0,	// column 1
+                     -f, e, 0,	// column 2
                      0.0, 0.0, 1.0);				// column 3
     // apply rotations
     cubeLoc = rotX * cubeLoc;

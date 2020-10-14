@@ -11,7 +11,7 @@ color4 gaussianBlurVert(in sCoord fragCoord, in sampler2D tex, in vec2 resolutio
  	// cache inverse resolution
     vec2 invResolution = 1.0 / resolution;
     
-    // define gaussian convolution kernel 5x5
+    // define gaussian convolution kernel 7x7
     const int rowSize = 7;
     const float invRowSize = 1.0 / float(rowSize);
     const float invSum = 1.0 / 64.0;
