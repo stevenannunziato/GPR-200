@@ -1,12 +1,11 @@
 // GLSL STARTER CODE BY DANIEL S. BUCKSTEIN
 // Modified by Steven Annunziato
-//  -> BUFFER C TAB (scene)
+//  -> BUFFER D TAB (scene)
 
 //------------------------------------------------------------
 // RENDERING FUNCTIONS
 
-
-color4 gaussianBlurVert(in sCoord fragCoord, in sampler2D tex, in vec2 resolution)
+color4 gaussianBlurHori(in sCoord fragCoord, in sampler2D tex, in vec2 resolution)
 {
  	// cache inverse resolution
     vec2 invResolution = 1.0 / resolution;
@@ -22,8 +21,8 @@ color4 gaussianBlurVert(in sCoord fragCoord, in sampler2D tex, in vec2 resolutio
     for (int i = rowSize - 1; i > 0; --i)
     {
         // get appropriate UV value and color for current pixel
-        float curX = fragCoord.x;
-        float curY = fragCoord.y - floor(float(rowSize) * 0.5) + float(i);
+        float curX = fragCoord.x - floor(float(rowSize) * 0.5) + float(i);
+        float curY = fragCoord.y;
         vec2 uv = vec2(curX, curY) * invResolution;
         sum += texture(tex, uv) * kernel[i];
     }
@@ -56,7 +55,7 @@ void mainImage(out color4 fragColor, in sCoord fragCoord)
     // set iChannel0 to 'Misc/Buffer A' and fetch sample
     //fragColor = texture(iChannel0, uv);
     
- 	fragColor = gaussianBlurVert(fragCoord, iChannel0, iChannelResolution[0].xy);
+ 	fragColor = gaussianBlurHori(fragCoord, iChannel0, iChannelResolution[0].xy);
     
     // test
     //fragColor = vec4(fract(fragCoord.x));
