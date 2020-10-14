@@ -15,10 +15,12 @@ void mainImage(out color4 fragColor, in sCoord fragCoord)
     
     // Sample from default scene and bloom
     color4 sceneColor = texture(iChannel0, uv);
+    color4 brightPass = texture(iChannel1, uv);
     color4 bloomColor = texture(iChannel3, uv);
     
     // default individual layers
     //fragColor = sceneColor;
+    //fragColor = brightPass;
     //fragColor = bloomColor;
     
     // add

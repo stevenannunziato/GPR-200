@@ -19,7 +19,7 @@ color4 gaussianBlurVert(in sCoord fragCoord, in sampler2D tex, in vec2 resolutio
     
     // sum pixel values around current pixel
     color4 sum;
-    for (int i = rowSize - 1; i > 0; --i)
+    for (int i = rowSize - 1; i >= 0; --i)
     {
         // get appropriate UV value and color for current pixel
         float curX = fragCoord.x;

@@ -12,17 +12,17 @@ color4 cubeMapEffect(in sViewport vp, in sRay ray)
     // use ray direction for cube sample position
     vec3 cubeLoc = ray.direction.xyz;
     
-    /* Mouse rotations: currently unused
+    //Mouse rotations: currently unused
     // define the desired rotation based on mouse
     vec2 mouseDir = iMouse.zw - iMouse.xy;
     // correct sensitivity
     mouseDir *= 0.005;
     // reset rotation when not clicking
     mouseDir *= float(iMouse.z > 0.0);
-    vec3 rot = vec3(-mouseDir.y, mouseDir.x - 1.57, 0.0);
-	*/
+    vec3 rot = vec3(-mouseDir.y, mouseDir.x + 1.57, 0.0);
+	
     // rotate based on time
-    vec3 rot = vec3(0.0, iTime * -0.25, 0.0);
+   // vec3 rot = vec3(0.0, iTime * -0.25, 0.0);
     
     // define rotation matrices
     // x

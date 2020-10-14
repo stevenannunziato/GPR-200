@@ -3,8 +3,11 @@ void mainCubemap( out vec4 fragColor, in vec2 fragCoord, in vec3 rayOri, in vec3
     // Ray direction as color
     //vec3 col = 0.5 + 0.5*rayDir;
     
-    vec3 col = vec3(0.0, 0.0, rayDir.y);
+    float r = sin(mix(rayDir.z, rayDir.x, sin(iTime)) * 30.0 + sin(iTime) * 10.0);
+    float g = sin(rayDir.x * 100.0 - iTime * 14.0);
+    float b = sin(rayDir.y * 50.0 + iTime * 70.0);
+    vec3 col = vec3(r, g, b);
 
     // Output to cubemap
-    fragColor = vec4(col,1.0);
+    fragColor = vec4(col, 1.0);
 }

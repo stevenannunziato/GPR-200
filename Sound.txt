@@ -1,7 +1,7 @@
 vec2 mainSound( float time )
 {
     // store values to use in a sound
-    float volume = 0.04;
+    float volume = 0.08;
     float freq = (sin(time * (5.0 + cos(time * 0.75))) + (sin(time * 40.0) + 15.0)) * 100.0;
     //freq = cos(time * ((sin(time) * 2.0) + 4.0)) * 1000.0;
     //freq = 1000.0;
