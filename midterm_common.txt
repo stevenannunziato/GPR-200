@@ -1,4 +1,4 @@
-
+const float numBands = 8.0;
 
 vec4 someFunction( vec4 a, float b )
 {

@@ -1,39 +1,13 @@
-// effect 1: static checkerboard
-// NOTE: this is likely very inefficient due to the amount of sin calls
-vec4 checkerboard(in vec2 fragCoord, in vec2 resolution)
-{
-    // modifiable properties
-    float widthModifier = 7.9;
-    
-    // declare final color
-    vec4 myColor;
-    
-    // create imaginary horizontal lines across the screen
-    // if we are on the first set of imaginary rows:
-    if (sin(fragCoord.y / widthModifier) > 0.0) {
-        // create vertical lines of black and white
-        if (sin(fragCoord.x / widthModifier) > 0.0) {
-            myColor = vec4(1.0, 1.0, 1.0, 1.0);
-        }
-        else {
-            myColor = vec4(0.0, 0.0, 0.0, 0.0);
-        }
-    }
-    // if we are on the other set of imaginary rows:
-    else {
-        // create vertical lines of black and white except opposite of the other rows
-        if (sin(fragCoord.x / widthModifier) <= 0.0) {
-            myColor = vec4(1.0, 1.0, 1.0, 1.0);
-        }
-        else {
-            myColor = vec4(0.0, 0.0, 0.0, 0.0);
-        }
-    }
-    
-    return myColor;
-}
+// BUFFER A: Music buffer
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-    //fragColor = checkerboard(fragCoord, iResolution.xy);
+    vec2 invRes = 1.0 / iResolution.xy;
+    vec2 uv = fragCoord * invRes;
+    //uv.x += texture(iChannel0, vec2(uv.y, 0.0)).x * 0.1;
+    
+    // sum frequencies in this frequency band
+    //fragColor = vec4( round(sin(uv.x * 100.0)) );
+    
+    fragColor = texture(iChannel0, vec2(uv.x, 0.0)).xxxx;
 }
