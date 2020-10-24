@@ -92,6 +92,17 @@ bool hitSphereArray(in Sphere spheres[10], in Ray ray, in float tMin, in float t
     return hitAnything;
 }
 
+// Adapted from Inigo Quilez
+// https://iquilezles.org/www/articles/intersectors/intersectors.htm
+// plane degined by p (p.xyz must be normalized)
+float planeIntersect(in Ray ray, in vec4 normal, out HitRecord record)
+{
+    float t = -(dot(ray.origin.xyz, normal.xyz) + normal.w) / dot(ray.direction.xyz, normal.xyz);
+    record.normal = normal.xyz;
+    record.point = (ray.origin + t * ray.direction).xyz;
+    return t;
+}
+
 // ---------------------------------------------------------------------
 // LIGHTING
 
@@ -245,6 +256,13 @@ vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
         return calcLighting(ray, record, eyePos);
     }
     
+    // draw plane
+    vec3 planeNormal = vec3(0.0, 1.0, 0.0);
+	if (planeIntersect(ray, asOffset(planeNormal), record) > 0.0)
+    {
+        return calcLighting(ray, record, eyePos);
+    }
+    
     // calculate unit vector for the current ray direction
     float invLength = 1.0 / length(ray.direction.xyz); // inefficient square root necessary here
     vec4 unitDirection = vec4(ray.direction.xyz * invLength, ray.direction.w);
@@ -284,7 +302,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     Sphere ground = Sphere(vec3(0.0, -100.5, -1.0), 100.0);
     Sphere world[10];
     world[0] = sphere1;
-    world[1] = ground;
+    //world[1] = ground;
     world[2] = sphere2;
     world[3] = sphere3;
     
