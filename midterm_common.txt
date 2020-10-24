@@ -1,6 +1,20 @@
 const float numBands = 8.0;
 
-vec4 someFunction( vec4 a, float b )
-{
-    return a+b;
-}
+// Data structures for Raytracing
+
+struct Sphere {
+    vec3 center;
+    float radius;
+};
+    
+struct HitRecord {
+	vec3 point;
+    float t;
+    vec3 normal;
+    bool frontFace;
+};
+    
+struct Ray {
+	vec4 origin;
+    vec4 direction;
+};
