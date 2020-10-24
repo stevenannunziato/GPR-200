@@ -1,0 +1,31 @@
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    vec2 invRes = 1.0 / iResolution.xy;
+    float aspectRatio =  iResolution.y / iResolution.x;
+    
+    // Normalized pixel coordinates (from 0 to 1)
+    vec2 uv01 = fragCoord * invRes;
+    vec2 uv = uv01 * 2.0 - 1.0;
+    uv.y *= aspectRatio;
+    
+    
+    // Normalized pixel coordinates (from -1 to 1)
+    vec2 ndc = 2.0 * fragCoord.xy - iResolution.xy;
+    ndc /= max(iResolution.x, iResolution.y);
+    ndc = uv;
+    
+    // convert to polar
+    float radius = length(ndc);
+	float theta = atan(ndc.x, ndc.y);
+
+    // tunnel
+    vec2 texCoord = vec2(1.0 / radius + iTime, theta);
+    vec4 texColor = texture(iChannel1, texCoord);
+
+    // Output to screen
+    //fragColor = vec4(col,1.0);
+    //fragColor = texture(iChannel0, vec2(uv.x, 0.0)).xxxx;
+    fragColor = texture(iChannel2, uv01);
+    //fragColor = texColor * radius;
+    
+}

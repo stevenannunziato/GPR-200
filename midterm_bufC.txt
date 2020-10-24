@@ -1,0 +1,7 @@
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    vec2 invRes = 1.0 / iResolution.xy;
+    vec2 uv = fragCoord * invRes;
+    
+    fragColor = texture(iChannel0, vec2(uv.x, 0.0)).xxxx;
+}
