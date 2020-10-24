@@ -1,23 +1,23 @@
 /*
 
+BUFFER C: Raytracing
+
 Original code provided by Dan Buckstien
 Modified by Steven Annunziato
-All modifications are adapted from Peter Shirley's Ray Tracing in One Weekend
+Modifications are adapted from Peter Shirley's Ray Tracing in One Weekend
 https://raytracing.github.io/books/RayTracingInOneWeekend.html#rays,asimplecamera,andbackground
 
 */
 
-// BUFFER C: Raytracing
-
 // get point on ray
-vec3 at(vec4 rayDirection, vec4 rayOrigin, float t)
+vec3 at(Ray ray, float t)
 {
-	return rayOrigin.xyz + rayDirection.xyz * t;
+	return ray.origin.xyz + ray.direction.xyz * t;
 }    
  
 // determine the correct way to set the face normal
-void setFaceNormal(vec4 rayDirection, vec4 rayOrigin, in vec3 outwardNormal, out HitRecord record) {
-    if (dot(rayDirection.xyz, outwardNormal) > 0.0) {
+void setFaceNormal(Ray ray, in vec3 outwardNormal, out HitRecord record) {
+    if (dot(ray.direction.xyz, outwardNormal) > 0.0) {
         // ray is inside the sphere
         record.normal = -outwardNormal;
         record.frontFace = false;
@@ -29,7 +29,10 @@ void setFaceNormal(vec4 rayDirection, vec4 rayOrigin, in vec3 outwardNormal, out
     }
 }
 
-// detect if a ray has hit a sphere with clamped t value
+// -----------------------------------------------------------
+// INTERSECTION
+
+// detect if a ray has intersected a sphere with clamped t value
 bool hitSphere(in vec3 center, in float radius, in Ray ray, in float tMin, in float tMax, out HitRecord record)
 {
 	// calculate if the ray hits a sphere
@@ -46,9 +49,9 @@ bool hitSphere(in vec3 center, in float radius, in Ray ray, in float tMin, in fl
         if (temp > tMin && temp < tMax) {
             // calculate hit record information
             record.t = temp;
-            record.point = at(ray.direction, ray.origin, temp);
+            record.point = at(ray, temp);
             vec3 outwardNormal = (record.point - center) / radius;
-            setFaceNormal(ray.direction, ray.origin, outwardNormal, record);
+            setFaceNormal(ray, outwardNormal, record);
             return true;
         }
         
@@ -56,9 +59,9 @@ bool hitSphere(in vec3 center, in float radius, in Ray ray, in float tMin, in fl
         if (temp > tMin && temp < tMax) {
             // calculate hit record information
             record.t = temp;
-            record.point = at(ray.direction, ray.origin, temp);
+            record.point = at(ray, temp);
             vec3 outwardNormal = (record.point - center) / radius;
-            setFaceNormal(ray.direction, ray.origin, outwardNormal, record);
+            setFaceNormal(ray, outwardNormal, record);
             return true;
         }
     }
@@ -89,11 +92,97 @@ bool hitSphereArray(in Sphere spheres[10], in Ray ray, in float tMin, in float t
     return hitAnything;
 }
 
-// returns a random int [0, 1)
-// taken from this site: https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
-float randomFloat(vec2 seed) {
-    return fract(sin(dot(seed.xy, vec2(12.9898,78.233))) * 43758.5453);
+// ---------------------------------------------------------------------
+// LIGHTING
+
+// calculations for diffuse light scattering
+float calcDiffuse(in sPointLight light, in vec3 position, in vec3 normal, out vec3 lightVector)
+{
+    // lambertian reflectance
+    //lightVector = light.center.xyz - position;
+    float lightDist = sqrt(dot(lightVector, lightVector));
+    float invDist = 1.0 / lightDist;
+    lightVector *= invDist; // light vector is now normalized
+    float diffuseCoefficient = max(0.0, dot(normal, lightVector));
+    // attenuation (light falloff)
+    float invIntensity = 1.0 / light.intensity;
+    float attenuatedIntensity = 1.0 / (1.0 + (lightDist * invIntensity) + square(lightDist * invIntensity));
+    return diffuseCoefficient * attenuatedIntensity;
 }
+
+// calculations for specular highlights
+float phongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
+{
+    // phong reflectance
+    vec3 reflectedLight = reflect(-lightVector, normal);
+    float specularCoefficient = max(0.0, dot(viewVector, reflectedLight));
+    return pow64(specularCoefficient);
+}
+
+float blinnPhongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
+{
+    // blinn-phong reflectance
+    vec3 temp = lightVector + viewVector;
+    float invLength = 1.0 / sqrt(dot(temp, temp));
+    vec3 halfwayVector = temp * invLength;
+    float specularCoefficient = max(0.0, dot(normal, halfwayVector));
+    return pow256(specularCoefficient);   
+}
+
+vec4 calcLighting(Ray ray, HitRecord record, vec3 eyePos)
+{
+    
+    // lighting properties
+    float intensity = 20.0;
+    
+    // light definitions
+    sPointLight light1;
+    initPointLight(light1, vec3(-2.0, 1.0, 0.0), vec4(1.0, 0.0, 0.0, 1.0), intensity);
+    sPointLight light2;
+    initPointLight(light2, vec3(-1.0, 1.0, 0.0), vec4(0.0, 1.0, 0.0, 1.0), intensity * 1.75);
+    sPointLight light3;
+    initPointLight(light3, vec3(1.0, 1.0, 0.0), vec4(0.0, 0.0, 1.0, 1.0), intensity * 0.8);
+    sPointLight light4;
+    initPointLight(light4, vec3(2.0, 1.0, 0.0), vec4(1.0, 0.0, 1.0, 1.0), intensity * 0.5);
+    // array of lights
+    sPointLight lights[4];
+    lights[0] = light1;
+    lights[1] = light2;
+    lights[2] = light3;
+    lights[3] = light4;
+    
+    
+    // SHADING
+    // light and color properties
+    vec4 diffuseColor = vec4(0.8, 0.8, 1.0, 1.0);
+    float ambientIntensity = 0.1;
+    vec4 ambientColor = vec4(1.0, 0.9, 0.9, 1.0);
+    vec4 specularHighlightColor = vec4(1.0, 0.4, 0.8, 1.0);
+
+    // final calculation
+    vec4 finalAmbient = ambientIntensity * ambientColor;
+    vec4 summedColor = vec4(0.0);
+    // loop through each light
+    for (int i = lights.length() - 1; i >= 0; --i) {
+
+        vec3 lightVector = lights[i].center.xyz - record.point;
+        vec3 viewVector = normalize(record.point - eyePos); // OPTIMIZE
+
+        // first calculate diffuse intensity
+        float diffuseIntensity = calcDiffuse(lights[i], record.point, record.normal, lightVector);
+
+        // next calculate specular intensity
+        float specularIntensity = blinnPhongSpecular(lightVector, viewVector, record.normal);
+        specularIntensity = 0.0;
+
+        // final calculation
+        summedColor += (diffuseIntensity * diffuseColor + specularIntensity * specularHighlightColor) * lights[i].color;
+    }
+    return finalAmbient + summedColor;   
+}
+
+// ---------------------------------------------------------------------
+// RENDERING
 
 // calcViewport: calculate the viewing plane (viewport) coordinate
 //    viewport:       output viewing plane coordinate

@@ -18,3 +18,81 @@ struct Ray {
 	vec4 origin;
     vec4 direction;
 };
+    
+// structure for a point light
+struct sPointLight
+{
+    vec4 center;
+    vec4 color;
+    float intensity;
+};
+
+
+// --------------------------------------------
+// Utility Functions    
+    
+// asPoint: promote a 3D vector into a 4D vector representing a point (w=1)
+//    point: input 3D vector
+vec4 asPoint(in vec3 point)
+{
+    return vec4(point, 1.0);
+}
+
+// asOffset: promote a 3D vector into a 4D vector representing an offset (w=0)
+//    offset: input 3D vector
+vec4 asOffset(in vec3 offset)
+{
+    return vec4(offset, 0.0);
+}
+
+// returns a random int [0, 1)
+// taken from this site: https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
+float randomFloat(vec2 seed) {
+    return fract(sin(dot(seed.xy, vec2(12.9898,78.233))) * 43758.5453);
+}
+
+float lengthSquared(vec2 x) {
+    return dot(x, x);
+}
+
+// optimized power increase functions
+float square(float n)
+{
+    return n * n;
+}
+float pow64(float n)
+{
+    n *= n; // power = 2
+    n *= n; // power = 4
+    n *= n; // power = 8
+    n *= n; // power = 16
+    n *= n; // power = 32
+    n *= n; // power = 64
+    return n;
+}
+float pow256(float n)
+{
+    n *= n; // power = 2
+    n *= n; // power = 4
+    n *= n; // power = 8
+    n *= n; // power = 16
+    n *= n; // power = 32
+    n *= n; // power = 64
+    n *= n; // power = 128
+    n *= n; // power = 256
+    return n;
+}
+
+// polar to cartesian function
+vec2 polarToCartesian(in float radius, in float theta)
+{
+    return vec2(radius * cos(theta), radius * sin(theta));
+}
+
+// initialize point light
+void initPointLight(out sPointLight light, in vec3 center, in vec4 color, in float intensity)
+{
+    light.center = asPoint(center);
+    light.color = color;
+    light.intensity = intensity;
+}
