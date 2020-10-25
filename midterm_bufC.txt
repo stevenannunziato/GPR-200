@@ -140,34 +140,14 @@ float blinnPhongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal
     return pow256(specularCoefficient);   
 }
 
-vec4 calcLighting(Ray ray, HitRecord record, vec3 eyePos)
+vec4 calcLighting(Ray ray, HitRecord record, vec3 eyePos, sPointLight[4] lights)
 {
-    
-    // lighting properties
-    float intensity = 20.0;
-    
-    // light definitions
-    sPointLight light1;
-    initPointLight(light1, vec3(sin(iTime) * 5.0, 1.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0), intensity);
-    sPointLight light2;
-    initPointLight(light2, vec3(-1.0, 1.0, 0.0), vec4(0.0, 1.0, 0.0, 1.0), intensity * 1.75);
-    sPointLight light3;
-    initPointLight(light3, vec3(1.0, 1.0, 0.0), vec4(0.0, 0.0, 1.0, 1.0), intensity * 0.8);
-    sPointLight light4;
-    initPointLight(light4, vec3(2.0, 1.0, 0.0), vec4(1.0, 0.0, 1.0, 1.0), intensity * 0.5);
-    // array of lights
-    sPointLight lights[4];
-    lights[0] = light1;
-    //lights[1] = light2;
-    //lights[2] = light3;
-    //lights[3] = light4;
-    
     
     // SHADING
     // light and color properties
     vec4 diffuseColor = vec4(1.0, 1.0, 1.0, 1.0);
     float ambientIntensity = 0.1;
-    vec4 ambientColor = vec4(1.0, 1.0, 1.0, 1.0);
+    vec4 ambientColor = vec4(0.7, 0.4, 0.7, 1.0);
     vec4 specularHighlightColor = vec4(1.0, 1.0, 1.0, 1.0);
 
     // final calculation
@@ -248,19 +228,44 @@ void calcRay(out Ray ray, in vec3 eyePos,
 vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
 {
 
+	// lighting properties
+    float intensity = 20.0;
+    
+    // light definitions
+    sPointLight light1;
+    initPointLight(light1, vec3(sin(iTime) * 5.0, 1.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0), intensity);
+    sPointLight light2;
+    initPointLight(light2, vec3(-1.0, 1.0, 0.0), vec4(0.0, 1.0, 0.0, 1.0), intensity * 1.75);
+    sPointLight light3;
+    initPointLight(light3, vec3(1.0, 1.0, 0.0), vec4(0.0, 0.0, 1.0, 1.0), intensity * 0.8);
+    sPointLight light4;
+    initPointLight(light4, vec3(2.0, 1.0, 0.0), vec4(1.0, 0.0, 1.0, 1.0), intensity * 0.5);
+    // array of lights
+    sPointLight lights[4];
+    lights[0] = light1;
+    //lights[1] = light2;
+    //lights[2] = light3;
+    //lights[3] = light4;
+    
     // create hit records for all objects in the world (aka the array of spheres)
     HitRecord record;
     if (hitSphereArray(spheres, ray, 0.0, 10000.0, record))
     {
         //return vec4(0.5 * (record.normal + vec3(1.0)), 1.0); // shade based on surface normals
-        return calcLighting(ray, record, eyePos);
+        return calcLighting(ray, record, eyePos, lights);
     }
     
     // draw plane
     vec3 planeNormal = vec3(0.0, 1.0, 0.0);
 	if (planeIntersect(ray, asOffset(planeNormal), record) > 0.0)
     {
-        return calcLighting(ray, record, eyePos);
+        vec4 lightIntensity = calcLighting(ray, record, eyePos, lights);
+        
+        // sample from buffer B: generated texture
+        vec2 texCoord = vec2(fract(record.point.x), fract(record.point.z));
+        vec4 texColor = texture(iChannel1, texCoord);
+        
+        return texColor * lightIntensity;
     }
     
     // calculate unit vector for the current ray direction
