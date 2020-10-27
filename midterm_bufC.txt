@@ -85,6 +85,7 @@ bool hitSphereArray(in Sphere spheres[10], in Ray ray, in float tMin, in float t
             hitAnything = true;
             closestSoFar = tempRecord.t;
             record = tempRecord;
+            record.diffuseColor = spheres[i].diffuseColor;
         }
     }
     
@@ -140,14 +141,13 @@ float blinnPhongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal
     return pow256(specularCoefficient);   
 }
 
-vec4 calcLighting(Ray ray, HitRecord record, vec3 eyePos, sPointLight[4] lights)
+vec4 calcLighting(Ray ray, HitRecord record, vec3 eyePos, sPointLight[4] lights, in vec4 diffuseColor)
 {
     
     // SHADING
     // light and color properties
-    vec4 diffuseColor = vec4(1.0, 1.0, 1.0, 1.0);
-    float ambientIntensity = 0.1;
-    vec4 ambientColor = vec4(0.7, 0.4, 0.7, 1.0);
+    float ambientIntensity = 0.2;
+    vec4 ambientColor = vec4(0.7, 0.1, 0.7, 1.0);
     vec4 specularHighlightColor = vec4(1.0, 1.0, 1.0, 1.0);
 
     // final calculation
@@ -228,22 +228,29 @@ void calcRay(out Ray ray, in vec3 eyePos,
 vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
 {
 
-	// lighting properties
+	// lighting properties and animation values
     float intensity = 20.0;
+    float orbitRadius = 4.0;
+    float offset = 3.14;
+    float depth = 3.5;
+    float height = 2.0;
+    vec3 lightPos1 = vec3(sin(iTime) * orbitRadius,          height, cos(iTime) * orbitRadius - depth);
+    vec3 lightPos2 = vec3(sin(iTime + offset) * orbitRadius, height, cos(iTime + offset) * orbitRadius - depth);
     
     // light definitions
     sPointLight light1;
-    initPointLight(light1, vec3(sin(iTime) * 5.0, 1.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0), intensity);
+    initPointLight(light1, lightPos1, color2, intensity);
     sPointLight light2;
-    initPointLight(light2, vec3(-1.0, 1.0, 0.0), vec4(0.0, 1.0, 0.0, 1.0), intensity * 1.75);
-    sPointLight light3;
+    initPointLight(light2, lightPos2, color1, intensity);
+    /*sPointLight light3;
     initPointLight(light3, vec3(1.0, 1.0, 0.0), vec4(0.0, 0.0, 1.0, 1.0), intensity * 0.8);
     sPointLight light4;
-    initPointLight(light4, vec3(2.0, 1.0, 0.0), vec4(1.0, 0.0, 1.0, 1.0), intensity * 0.5);
+    initPointLight(light4, vec3(2.0, 1.0, 0.0), vec4(1.0, 0.0, 1.0, 1.0), intensity * 0.5*/
+    
     // array of lights
     sPointLight lights[4];
     lights[0] = light1;
-    //lights[1] = light2;
+    lights[1] = light2;
     //lights[2] = light3;
     //lights[3] = light4;
     
@@ -252,14 +259,16 @@ vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
     if (hitSphereArray(spheres, ray, 0.0, 10000.0, record))
     {
         //return vec4(0.5 * (record.normal + vec3(1.0)), 1.0); // shade based on surface normals
-        return calcLighting(ray, record, eyePos, lights);
+        return calcLighting(ray, record, eyePos, lights, record.diffuseColor);
     }
     
     // draw plane
-    vec3 planeNormal = normalize(vec3(0.0, 1.0, 0.0));
+    float wobbleIntensity = 0.2;
+    float wobbleSpeed = 0.6;
+    vec3 planeNormal = normalize(vec3(sin(iTime * wobbleSpeed) * wobbleIntensity, 1.0, cos(iTime * wobbleSpeed) * wobbleIntensity));
 	if (planeIntersect(ray, asOffset(planeNormal), record) > 0.0)
     {
-        vec4 lightIntensity = calcLighting(ray, record, eyePos, lights);
+        vec4 lightIntensity = calcLighting(ray, record, eyePos, lights, vec4(1.0));
         
         // sample from buffer B: generated texture
         vec2 texCoord = vec2(record.point.x, record.point.z);
@@ -274,7 +283,7 @@ vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
     
     // output a gradient in the background
     float t = 0.5 * (unitDirection.y + 1.0);
-    return (1.0 - t) * vec4(1.0, 1.0, 1.0, 1.0) + t * vec4(0.5, 0.7, 1.0, 1.0);
+    return (1.0 - t) * vec4(0.7, 0.0, 0.9, 1.0) + t * vec4(0.5, 0.6, 0.9, 1.0);
 }
 
 // mainImage: process the current pixel (exactly one call per pixel)
@@ -297,19 +306,53 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     calcRay(ray, eyePos,
             viewport, focalLength);
 
-    // create world
-    float yVal1 = texture(iChannel0, vec2(0.0, 0.0)).x;//abs(sin(iTime * 2.75 + 20.0));
-    float yVal2 = texture(iChannel0, vec2(0.33, 0.0)).x;//abs(sin(iTime * 2.75 + 40.0));
-    float yVal3 = texture(iChannel0, vec2(0.66, 0.0)).x;//abs(sin(iTime * 2.75));
-    Sphere sphere1 = Sphere(vec3(0.0, yVal1, -2.25), 0.5);
-    Sphere sphere2 = Sphere(vec3(1.0, yVal2, -1.5), 0.5);
-    Sphere sphere3 = Sphere(vec3(-1.0, yVal3, -1.5), 0.5);
-    Sphere ground = Sphere(vec3(0.0, -100.5, -1.0), 100.0);
+    // sample music
+    float subBass = texture(iChannel0, vec2(0.0, 0.0)).x;
+    float bass = texture(iChannel0, vec2(0.2, 0.0)).x;
+    float lowMid = texture(iChannel0, vec2(0.4, 0.0)).x;
+    float highMid = texture(iChannel0, vec2(0.6, 0.0)).x;
+    float high = texture(iChannel0, vec2(0.8, 0.0)).x;
+    float scale1 = 0.5 + subBass * 0.3;
+    
+    // create spheres
+    // position for the main sphere
+    vec3 mainPos = vec3(0.0, 0.0, -3.5);
+    
+    // positions for orbiting spheres
+    float angle = 1.0471;
+    float orbitRadius = 2.0 + sin(iTime * 0.3) * 0.7;
+    
+    vec3 circlePos1 = vec3(sin(iTime) * orbitRadius,               subBass - 0.5, cos(iTime) * orbitRadius);
+    vec3 circlePos2 = vec3(sin(iTime + angle) * orbitRadius,       highMid - 0.5, cos(iTime + angle) * orbitRadius);
+    vec3 circlePos3 = vec3(sin(iTime + angle * 2.0) * orbitRadius, subBass - 0.5, cos(iTime + angle * 2.0) * orbitRadius);
+    vec3 circlePos4 = vec3(sin(iTime + angle * 3.0) * orbitRadius, highMid - 0.5, cos(iTime + angle * 3.0) * orbitRadius);
+    vec3 circlePos5 = vec3(sin(iTime + angle * 4.0) * orbitRadius, subBass - 0.5, cos(iTime + angle * 4.0) * orbitRadius);
+    vec3 circlePos6 = vec3(sin(iTime + angle * 5.0) * orbitRadius, highMid - 0.5, cos(iTime + angle * 5.0) * orbitRadius);
+    circlePos1 += mainPos;
+    circlePos2 += mainPos;
+    circlePos3 += mainPos;
+    circlePos4 += mainPos;
+    circlePos5 += mainPos;
+    circlePos6 += mainPos;
+    
+    // declare spheres
+    Sphere sphere1 = Sphere(mainPos, scale1, color3); // main
+    Sphere sphere2 = Sphere(circlePos1, 0.4, color1);
+    Sphere sphere3 = Sphere(circlePos2, 0.4, color2);
+    Sphere sphere4 = Sphere(circlePos3, 0.4, color1);
+    Sphere sphere5 = Sphere(circlePos4, 0.4, color2);
+    Sphere sphere6 = Sphere(circlePos5, 0.4, color1);
+    Sphere sphere7 = Sphere(circlePos6, 0.4, color2);
+    
+    // add spheres to world
     Sphere world[10];
     world[0] = sphere1;
-    //world[1] = ground;
-    world[2] = sphere2;
-    world[3] = sphere3;
+    world[1] = sphere2;
+    world[2] = sphere3;
+    world[3] = sphere4;
+    world[4] = sphere5;
+    world[5] = sphere6;
+    world[6] = sphere7;
     
     // calculate ray traced color (with antialiasing)
     /*int numberOfSamples = 20;

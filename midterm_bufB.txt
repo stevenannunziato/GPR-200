@@ -1,18 +1,25 @@
 // BUFFER B: Texture pattern
 
-const float numStripes = 10.0;
+const float numStripes = 8.0;
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-    //fragColor = checkerboard(fragCoord, iResolution.xy);
     
+    // calculate inverse resolution and uv values
     vec2 invRes = 1.0 / iResolution.xy;
     vec2 uv = fragCoord * invRes;
+    
+    // apply a repeating wave offset
+    float musicOffset = texture(iChannel0, vec2(0.4, 0.25)).x * 0.15;
     float t = fragCoord.y * invRes.y * 6.28;
-    uv.x += sin(t + iTime) * 1.0;
+    uv.x += sin(t + iTime) * (musicOffset + 0.0);
     
     // draw stripes
-    fragColor = vec4(mod(floor(numStripes * (uv.x)), 2.0));
-    fragColor.a = 1.0;
+    float stripeIntensity = mod(floor(numStripes * (uv.x)), 2.0);
+    if (stripeIntensity == 0.0)
+        fragColor = color1;
+    else
+        fragColor = color2;
+    
     
 }

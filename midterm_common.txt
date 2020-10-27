@@ -1,10 +1,17 @@
+// constants
 const float numBands = 8.0;
+
+// color scheme
+const vec4 color1 = vec4(0.7, 0.6, 0.8, 1.0);
+const vec4 color2 = vec4(0.3, 0.9, 0.9, 1.0);
+const vec4 color3 = vec4(0.5, 0.9, 0.5, 1.0);
 
 // Data structures for Raytracing
 
 struct Sphere {
     vec3 center;
     float radius;
+    vec4 diffuseColor;
 };
     
 struct HitRecord {
@@ -12,6 +19,7 @@ struct HitRecord {
     float t;
     vec3 normal;
     bool frontFace;
+    vec4 diffuseColor;
 };
     
 struct Ray {
