@@ -256,13 +256,13 @@ vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
     }
     
     // draw plane
-    vec3 planeNormal = vec3(0.0, 1.0, 0.0);
+    vec3 planeNormal = normalize(vec3(0.0, 1.0, 0.0));
 	if (planeIntersect(ray, asOffset(planeNormal), record) > 0.0)
     {
         vec4 lightIntensity = calcLighting(ray, record, eyePos, lights);
         
         // sample from buffer B: generated texture
-        vec2 texCoord = vec2(fract(record.point.x), fract(record.point.z));
+        vec2 texCoord = vec2(record.point.x, record.point.z);
         vec4 texColor = texture(iChannel1, texCoord);
         
         return texColor * lightIntensity;
