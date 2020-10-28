@@ -157,7 +157,9 @@ vec4 calcLighting(Ray ray, HitRecord record, vec3 eyePos, sPointLight[4] lights,
     for (int i = lights.length() - 1; i >= 0; --i) {
 
         vec3 lightVector = lights[i].center.xyz - record.point;
-        vec3 viewVector = normalize(eyePos - record.point);
+        vec3 viewVector = eyePos - record.point; // not normalized
+        float invLength = 1.0 / sqrt(dot(viewVector, viewVector));
+        viewVector *= invLength; // normalized
 
         // first calculate diffuse intensity
         float diffuseIntensity = calcDiffuse(lights[i], record.point, record.normal, lightVector);
@@ -263,7 +265,9 @@ vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
     // draw plane
     float wobbleIntensity = 0.2;
     float wobbleSpeed = 0.6;
-    vec3 planeNormal = normalize(vec3(sin(iTime * wobbleSpeed) * wobbleIntensity, 1.0, cos(iTime * wobbleSpeed) * wobbleIntensity));
+    vec3 planeNormal = vec3(sin(iTime * wobbleSpeed) * wobbleIntensity, 1.0, cos(iTime * wobbleSpeed) * wobbleIntensity);
+    float invNLength = 1.0 / sqrt(dot(planeNormal, planeNormal));
+    planeNormal *= invNLength; // normalized
 	if (planeIntersect(ray, asOffset(planeNormal), record) > 0.0)
     {
         vec4 lightIntensity = calcLighting(ray, record, eyePos, lights, vec4(1.0));
@@ -276,7 +280,7 @@ vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
     }
     
     // calculate unit vector for the current ray direction
-    float invLength = 1.0 / length(ray.direction.xyz);
+    float invLength = 1.0 / sqrt(dot(ray.direction.xyz, ray.direction.xyz));
     vec4 unitDirection = vec4(ray.direction.xyz * invLength, ray.direction.w);
     
     // output a gradient in the background
