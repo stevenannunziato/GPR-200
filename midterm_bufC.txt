@@ -243,17 +243,11 @@ vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
     initPointLight(light1, lightPos1, color1, intensity);
     sPointLight light2;
     initPointLight(light2, lightPos2, color1, intensity);
-    /*sPointLight light3;
-    initPointLight(light3, vec3(1.0, 1.0, 0.0), vec4(0.0, 0.0, 1.0, 1.0), intensity * 0.8);
-    sPointLight light4;
-    initPointLight(light4, vec3(2.0, 1.0, 0.0), vec4(1.0, 0.0, 1.0, 1.0), intensity * 0.5*/
     
     // array of lights
     sPointLight lights[4];
     lights[0] = light1;
     lights[1] = light2;
-    //lights[2] = light3;
-    //lights[3] = light4;
     
     // create hit records for all objects in the world (aka the array of spheres)
     HitRecord record;
