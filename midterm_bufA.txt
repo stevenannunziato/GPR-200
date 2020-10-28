@@ -2,12 +2,10 @@
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
+    // find normalized UV coordinates
     vec2 invRes = 1.0 / iResolution.xy;
     vec2 uv = fragCoord * invRes;
-    //uv.x += texture(iChannel0, vec2(uv.y, 0.0)).x * 0.1;
     
-    // sum frequencies in this frequency band
-    //fragColor = vec4( round(sin(uv.x * 100.0)) );
-    
+    // sample music
     fragColor = texture(iChannel0, vec2(uv.x, 0.0)).xxxx;
 }

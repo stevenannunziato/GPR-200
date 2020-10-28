@@ -10,9 +10,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     vec2 uv = fragCoord * invRes;
     
     // apply a repeating wave offset
-    float musicOffset = texture(iChannel0, vec2(0.4, 0.25)).x * 0.15;
+    float musicOffset = texture(iChannel0, vec2(0.5, 0.25)).x * 0.15;
+    // ensure the input lies between 0 and 2*pi
     float t = fragCoord.y * invRes.y * 6.28;
-    uv.x += sin(t + iTime) * (musicOffset + 0.0);
+    uv.x += sin(t + iTime) * musicOffset;
     
     // draw stripes
     float stripeIntensity = mod(floor(numStripes * (uv.x)), 2.0);

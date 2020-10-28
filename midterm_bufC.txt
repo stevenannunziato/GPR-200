@@ -95,7 +95,7 @@ bool hitSphereArray(in Sphere spheres[10], in Ray ray, in float tMin, in float t
 
 // Adapted from Inigo Quilez
 // https://iquilezles.org/www/articles/intersectors/intersectors.htm
-// plane degined by p (p.xyz must be normalized)
+// note: normal must be normalized
 float planeIntersect(in Ray ray, in vec4 normal, out HitRecord record)
 {
     float t = -(dot(ray.origin.xyz, normal.xyz) + normal.w) / dot(ray.direction.xyz, normal.xyz);
@@ -146,8 +146,8 @@ vec4 calcLighting(Ray ray, HitRecord record, vec3 eyePos, sPointLight[4] lights,
     
     // SHADING
     // light and color properties
-    float ambientIntensity = 0.2;
-    vec4 ambientColor = vec4(0.7, 0.1, 0.7, 1.0);
+    float ambientIntensity = 0.07;
+    vec4 ambientColor = vec4(0.8, 0.8, 0.9, 1.0);
     vec4 specularHighlightColor = vec4(1.0, 1.0, 1.0, 1.0);
 
     // final calculation
@@ -157,14 +157,13 @@ vec4 calcLighting(Ray ray, HitRecord record, vec3 eyePos, sPointLight[4] lights,
     for (int i = lights.length() - 1; i >= 0; --i) {
 
         vec3 lightVector = lights[i].center.xyz - record.point;
-        vec3 viewVector = normalize(eyePos - record.point); // OPTIMIZE
+        vec3 viewVector = normalize(eyePos - record.point);
 
         // first calculate diffuse intensity
         float diffuseIntensity = calcDiffuse(lights[i], record.point, record.normal, lightVector);
 
         // next calculate specular intensity
         float specularIntensity = blinnPhongSpecular(lightVector, viewVector, record.normal);
-        //specularIntensity = 0.0;
 
         // final calculation
         summedColor += (diffuseIntensity * diffuseColor + specularIntensity * specularHighlightColor) * lights[i].color;
@@ -239,7 +238,7 @@ vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
     
     // light definitions
     sPointLight light1;
-    initPointLight(light1, lightPos1, color2, intensity);
+    initPointLight(light1, lightPos1, color1, intensity);
     sPointLight light2;
     initPointLight(light2, lightPos2, color1, intensity);
     /*sPointLight light3;
@@ -258,7 +257,6 @@ vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
     HitRecord record;
     if (hitSphereArray(spheres, ray, 0.0, 10000.0, record))
     {
-        //return vec4(0.5 * (record.normal + vec3(1.0)), 1.0); // shade based on surface normals
         return calcLighting(ray, record, eyePos, lights, record.diffuseColor);
     }
     
@@ -278,7 +276,7 @@ vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
     }
     
     // calculate unit vector for the current ray direction
-    float invLength = 1.0 / length(ray.direction.xyz); // inefficient square root necessary here
+    float invLength = 1.0 / length(ray.direction.xyz);
     vec4 unitDirection = vec4(ray.direction.xyz * invLength, ray.direction.w);
     
     // output a gradient in the background
@@ -307,27 +305,38 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
             viewport, focalLength);
 
     // sample music
-    float subBass = texture(iChannel0, vec2(0.0, 0.0)).x;
-    float bass = texture(iChannel0, vec2(0.2, 0.0)).x;
-    float lowMid = texture(iChannel0, vec2(0.4, 0.0)).x;
-    float highMid = texture(iChannel0, vec2(0.6, 0.0)).x;
-    float high = texture(iChannel0, vec2(0.8, 0.0)).x;
-    float scale1 = 0.5 + subBass * 0.3;
+    float scaleModifier = 1.6;
+    float subBass = texture(iChannel0, vec2(0.0, 0.0)).x * scaleModifier;
+    float bass = texture(iChannel0, vec2(0.13, 0.0)).x * scaleModifier;
+    float lowMid = texture(iChannel0, vec2(0.4, 0.0)).x * scaleModifier;
+    float highMid = texture(iChannel0, vec2(0.6, 0.0)).x * scaleModifier;
+    float high = texture(iChannel0, vec2(0.8, 0.0)).x * scaleModifier;
+    float brilliance = texture(iChannel0, vec2(0.95, 0.0)).x * scaleModifier;
+    
+    // sample mouse position
+    vec2 mouseValue = iMouse.xy;
+    // correct sensitivity
+    mouseValue *= 0.005;
+    // reset rotation when not clicking
+    mouseValue *= float(iMouse.z > 0.0);
     
     // create spheres
     // position for the main sphere
-    vec3 mainPos = vec3(0.0, 0.0, -3.5);
+    vec3 mainPos = vec3(0.0, 0.0, -4.0);
     
-    // positions for orbiting spheres
+    // values for animation
     float angle = 1.0471;
-    float orbitRadius = 2.0 + sin(iTime * 0.3) * 0.7;
-    
-    vec3 circlePos1 = vec3(sin(iTime) * orbitRadius,               subBass - 0.5, cos(iTime) * orbitRadius);
-    vec3 circlePos2 = vec3(sin(iTime + angle) * orbitRadius,       highMid - 0.5, cos(iTime + angle) * orbitRadius);
-    vec3 circlePos3 = vec3(sin(iTime + angle * 2.0) * orbitRadius, subBass - 0.5, cos(iTime + angle * 2.0) * orbitRadius);
-    vec3 circlePos4 = vec3(sin(iTime + angle * 3.0) * orbitRadius, highMid - 0.5, cos(iTime + angle * 3.0) * orbitRadius);
-    vec3 circlePos5 = vec3(sin(iTime + angle * 4.0) * orbitRadius, subBass - 0.5, cos(iTime + angle * 4.0) * orbitRadius);
-    vec3 circlePos6 = vec3(sin(iTime + angle * 5.0) * orbitRadius, highMid - 0.5, cos(iTime + angle * 5.0) * orbitRadius);
+    float orbitRadius = 2.0 + sin(iTime * 0.3) * 0.7 + mouseValue.x * 0.7;
+    float radialSpeed = (1.0 + mouseValue.x * 0.015) * iTime;
+    float extraHeight = 1.0 + mouseValue.y;
+    float scale1 = (0.4 + subBass * 0.4);
+    // positions for orbiting spheres
+    vec3 circlePos1 = vec3(sin(radialSpeed) * orbitRadius,               lowMid * extraHeight - 0.5,     cos(radialSpeed) * orbitRadius);
+    vec3 circlePos2 = vec3(sin(radialSpeed + angle) * orbitRadius,       brilliance * extraHeight - 0.5, cos(radialSpeed + angle) * orbitRadius);
+    vec3 circlePos3 = vec3(sin(radialSpeed + angle * 2.0) * orbitRadius, lowMid * extraHeight - 0.5,     cos(radialSpeed + angle * 2.0) * orbitRadius);
+    vec3 circlePos4 = vec3(sin(radialSpeed + angle * 3.0) * orbitRadius, brilliance * extraHeight - 0.5, cos(radialSpeed + angle * 3.0) * orbitRadius);
+    vec3 circlePos5 = vec3(sin(radialSpeed + angle * 4.0) * orbitRadius, lowMid * extraHeight - 0.5,     cos(radialSpeed + angle * 4.0) * orbitRadius);
+    vec3 circlePos6 = vec3(sin(radialSpeed + angle * 5.0) * orbitRadius, brilliance * extraHeight - 0.5, cos(radialSpeed + angle * 5.0) * orbitRadius);
     circlePos1 += mainPos;
     circlePos2 += mainPos;
     circlePos3 += mainPos;
@@ -337,11 +346,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     
     // declare spheres
     Sphere sphere1 = Sphere(mainPos, scale1, color3); // main
-    Sphere sphere2 = Sphere(circlePos1, 0.4, color1);
+    Sphere sphere2 = Sphere(circlePos1, 0.45, color1);
     Sphere sphere3 = Sphere(circlePos2, 0.4, color2);
-    Sphere sphere4 = Sphere(circlePos3, 0.4, color1);
+    Sphere sphere4 = Sphere(circlePos3, 0.45, color1);
     Sphere sphere5 = Sphere(circlePos4, 0.4, color2);
-    Sphere sphere6 = Sphere(circlePos5, 0.4, color1);
+    Sphere sphere6 = Sphere(circlePos5, 0.45, color1);
     Sphere sphere7 = Sphere(circlePos6, 0.4, color2);
     
     // add spheres to world
@@ -353,16 +362,6 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     world[4] = sphere5;
     world[5] = sphere6;
     world[6] = sphere7;
-    
-    // calculate ray traced color (with antialiasing)
-    /*int numberOfSamples = 20;
-    float invSamples = 1.0 / float(numberOfSamples);
-    vec4 finalColor = vec4(0.0);
-    for (int i = numberOfSamples - 1; i > 0; --i) {
-        ray.origin += vec4(vec3(randomFloat(fragCoord) * 0.0002), 0.0);
-        finalColor += calcColor(ray, world);
-    }
-    fragColor = finalColor * invSamples;*/
     
     // final color
     fragColor = calcColor(ray, world, eyePos);

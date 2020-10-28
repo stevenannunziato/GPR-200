@@ -1,14 +1,13 @@
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-    vec2 invRes = 1.0 / iResolution.xy;
-    float aspectRatio =  iResolution.y / iResolution.x;
     
-    // Normalized pixel coordinates (from 0 to 1)
+    // find normalized UV coordinates
+    vec2 invRes = 1.0 / iResolution.xy;    
     vec2 uv = fragCoord * invRes;
 
     // Output to screen
-    fragColor = texture(iChannel2, uv); // ray tracing
     //fragColor = texture(iChannel0, uv); // music
     //fragColor = texture(iChannel1, uv); // procedural texture
+    fragColor = texture(iChannel2, uv); // ray tracing
     
 }
