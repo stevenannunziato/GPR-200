@@ -6,8 +6,8 @@ vec2 wave(in vec2 originalLocation, in float t)
     vec2 deformedLocation = originalLocation;
     
     // shift coordinate by a sine function of the location
-    deformedLocation.y += sin(originalLocation.x * 6.0 + t * 2.0) * 0.015;
-    deformedLocation.x += sin(originalLocation.y * 6.0 + t * 2.0) * 0.015;
+    deformedLocation.y += sin(originalLocation.x * 6.0 + t * 2.0) * 0.012;
+    deformedLocation.x += sin(originalLocation.y * 6.0 + t * 2.0) * 0.012;
     
     // return deformed coordinate
     return deformedLocation;
@@ -29,7 +29,7 @@ vec4 fadeColor(in vec2 uv, in float blur)
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
     // intensity of effect
-    float psychedelicFactor = 0.15;
+    float psychedelicFactor = 0.1;
     float blur = 0.035;
     
     // calculate inverse resolution and uv values

@@ -7,34 +7,34 @@ const float brightnessCycleSpeed = 0.8;
 // https://www.shadertoy.com/view/MsjXRt
 vec4 hueShift(in vec3 Color, in float Shift)
 {
-    vec3 P = vec3(0.55735)*dot(vec3(0.55735),Color);
-    vec3 U = Color-P;
-    vec3 V = cross(vec3(0.55735),U);
+    vec3 P = vec3(0.55735) * dot(vec3(0.55735), Color);
+    vec3 U = Color - P;
+    vec3 V = cross(vec3(0.55735), U);
     
-    Color = U*cos(Shift*6.2832) + V*sin(Shift*6.2832) + P;
-    return vec4(Color,1.0);
+    Color = U * cos(Shift * 6.2832) + V * sin(Shift * 6.2832) + P;
+    return vec4(Color, 1.0);
 }
 
 // Primary color of the color scheme
-vec4 colorA(float t)
+vec4 colorA(in float t)
 {
     return hueShift(vec3(1.0, 0.0, 0.0), t * colorCycleSpeed);
 }
 
 // Complementary to colorA
-vec4 colorB(float t)
+vec4 colorB(in float t)
 {
     return hueShift(vec3(1.0, 0.0, 0.0), t * colorCycleSpeed + 0.5);
 }
 
 // White-grey color
-vec4 neutralColor(float t)
+vec4 neutralColor(in float t)
 {
     // ensure value is [0, 1]
     return vec4((sin(t * brightnessCycleSpeed) + 1.0) * 0.5);
 }
 
-
+// -------------------------------------------------------------------
 // Data structures for Raytracing
 
 struct Sphere {
