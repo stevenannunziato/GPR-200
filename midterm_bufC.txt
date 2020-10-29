@@ -316,7 +316,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     // sample mouse position
     vec2 mouseValue = iMouse.xy;
     // correct sensitivity
-    mouseValue *= vec2(0.0002, 0.005);
+    mouseValue *= vec2(0.005, 0.005);
     // reset rotation when not clicking
     mouseValue *= float(iMouse.z > 0.0);
     
@@ -326,7 +326,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     
     // values for animation
     float angle = 1.0471;
-    float orbitRadius = 2.0 + sin(iTime * 0.4) * 0.7 + mouseValue.x * 5.7;
+    float orbitRadius = 2.5 + sin(iTime * 0.8) * 0.9 + mouseValue.x * 0.2;
     float radialSpeed = (1.0 + mouseValue.x * 0.015) * iTime;
     float extraHeight = 1.0 + mouseValue.y;
     float scale1 = (0.4 + subBass * 0.4);

@@ -1,0 +1,43 @@
+// BUFFER D: After Effects
+
+// wave vec2
+vec2 wave(in vec2 originalLocation, in float t)
+{
+    vec2 deformedLocation = originalLocation;
+    
+    // shift coordinate by a sine function of the location
+    deformedLocation.y += sin(originalLocation.x * 6.0 + t * 2.0) * 0.015;
+    deformedLocation.x += sin(originalLocation.y * 6.0 + t * 2.0) * 0.015;
+    
+    // return deformed coordinate
+    return deformedLocation;
+}
+
+// Time accumulation method adapted from user qwzy:
+//https://www.shadertoy.com/view/Xlt3DX
+vec4 fadeColor(in vec2 uv, in float blur)
+{
+    
+    vec3 cur = texture(iChannel1, uv).xyz;
+    vec3 acc = texture(iChannel0, uv).xyz;
+    acc = hueShift(acc, 0.02).rgb;
+    acc *= 1.001;
+    
+    return vec4(cur * blur + acc * (1.0 - blur), 1.0);
+}
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    // intensity of effect
+    float psychedelicFactor = 0.15;
+    float blur = 0.035;
+    
+    // calculate inverse resolution and uv values
+    vec2 invRes = 1.0 / iResolution.xy;
+    vec2 uv = fragCoord * invRes;
+    
+    uv = mix(uv, wave(uv, iTime), psychedelicFactor);
+    
+    fragColor = fadeColor(uv, blur);
+    
+}
