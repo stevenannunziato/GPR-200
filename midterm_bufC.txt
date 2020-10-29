@@ -166,6 +166,7 @@ vec4 calcLighting(Ray ray, HitRecord record, vec3 eyePos, sPointLight[4] lights,
 
         // next calculate specular intensity
         float specularIntensity = blinnPhongSpecular(lightVector, viewVector, record.normal);
+        specularIntensity *= neutralColor(iTime).x;
 
         // final calculation
         summedColor += (diffuseIntensity * diffuseColor + specularIntensity * specularHighlightColor) * lights[i].color;
@@ -239,10 +240,11 @@ vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
     vec3 lightPos2 = vec3(sin(iTime + offset) * orbitRadius, height, cos(iTime + offset) * orbitRadius - depth);
     
     // light definitions
+    vec4 lightColor = vec4(neutralColor(iTime).x) * 0.7 + 0.3;
     sPointLight light1;
-    initPointLight(light1, lightPos1, color1, intensity);
+    initPointLight(light1, lightPos1, lightColor, intensity);
     sPointLight light2;
-    initPointLight(light2, lightPos2, color1, intensity);
+    initPointLight(light2, lightPos2, lightColor, intensity);
     
     // array of lights
     sPointLight lights[4];
@@ -278,8 +280,8 @@ vec4 calcColor(in Ray ray, in Sphere spheres[10], in vec3 eyePos)
     vec4 unitDirection = vec4(ray.direction.xyz * invLength, ray.direction.w);
     
     // output a gradient in the background
-    float t = 0.5 * (unitDirection.y + 1.0);
-    return (1.0 - t) * vec4(0.7, 0.0, 0.9, 1.0) + t * vec4(0.5, 0.6, 0.9, 1.0);
+    float t = 0.8 * (unitDirection.y + 0.3);
+    return (1.0 - t) * colorA(iTime) + t * neutralColor(iTime);
 }
 
 // mainImage: process the current pixel (exactly one call per pixel)
@@ -314,7 +316,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     // sample mouse position
     vec2 mouseValue = iMouse.xy;
     // correct sensitivity
-    mouseValue *= 0.005;
+    mouseValue *= vec2(0.0002, 0.005);
     // reset rotation when not clicking
     mouseValue *= float(iMouse.z > 0.0);
     
@@ -324,7 +326,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     
     // values for animation
     float angle = 1.0471;
-    float orbitRadius = 2.0 + sin(iTime * 0.3) * 0.7 + mouseValue.x * 0.7;
+    float orbitRadius = 2.0 + sin(iTime * 0.4) * 0.7 + mouseValue.x * 5.7;
     float radialSpeed = (1.0 + mouseValue.x * 0.015) * iTime;
     float extraHeight = 1.0 + mouseValue.y;
     float scale1 = (0.4 + subBass * 0.4);
@@ -343,13 +345,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     circlePos6 += mainPos;
     
     // declare spheres
-    Sphere sphere1 = Sphere(mainPos, scale1, color3); // main
-    Sphere sphere2 = Sphere(circlePos1, 0.45, color1);
-    Sphere sphere3 = Sphere(circlePos2, 0.4, color2);
-    Sphere sphere4 = Sphere(circlePos3, 0.45, color1);
-    Sphere sphere5 = Sphere(circlePos4, 0.4, color2);
-    Sphere sphere6 = Sphere(circlePos5, 0.45, color1);
-    Sphere sphere7 = Sphere(circlePos6, 0.4, color2);
+    float shift = 0.0;
+    Sphere sphere1 = Sphere(mainPos, scale1, neutralColor(iTime)); // main
+    Sphere sphere2 = Sphere(circlePos1, 0.45, colorA(iTime + shift));
+    Sphere sphere3 = Sphere(circlePos2, 0.4, colorB(iTime + shift));
+    Sphere sphere4 = Sphere(circlePos3, 0.45, colorA(iTime + shift));
+    Sphere sphere5 = Sphere(circlePos4, 0.4, colorB(iTime + shift));
+    Sphere sphere6 = Sphere(circlePos5, 0.45, colorA(iTime + shift));
+    Sphere sphere7 = Sphere(circlePos6, 0.4, colorB(iTime + shift));
     
     // add spheres to world
     Sphere world[10];

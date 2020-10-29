@@ -1,7 +1,39 @@
 // color scheme
-const vec4 color1 = vec4(0.7, 0.5, 0.8, 1.0);
-const vec4 color2 = vec4(0.3, 0.9, 0.9, 1.0);
-const vec4 color3 = mix(color1, color2, 0.5);
+
+const float colorCycleSpeed = 0.1;
+const float brightnessCycleSpeed = 0.8;
+
+// hueshift function copied from user mAlk:
+// https://www.shadertoy.com/view/MsjXRt
+vec4 hueShift(in vec3 Color, in float Shift)
+{
+    vec3 P = vec3(0.55735)*dot(vec3(0.55735),Color);
+    vec3 U = Color-P;
+    vec3 V = cross(vec3(0.55735),U);
+    
+    Color = U*cos(Shift*6.2832) + V*sin(Shift*6.2832) + P;
+    return vec4(Color,1.0);
+}
+
+// Primary color of the color scheme
+vec4 colorA(float t)
+{
+    return hueShift(vec3(1.0, 0.0, 0.0), t * colorCycleSpeed);
+}
+
+// Complementary to colorA
+vec4 colorB(float t)
+{
+    return hueShift(vec3(1.0, 0.0, 0.0), t * colorCycleSpeed + 0.5);
+}
+
+// White-grey color
+vec4 neutralColor(float t)
+{
+    // ensure value is [0, 1]
+    return vec4((sin(t * brightnessCycleSpeed) + 1.0) * 0.5);
+}
+
 
 // Data structures for Raytracing
 
