@@ -1,0 +1,87 @@
+#version 300 es
+
+// vertex shader main duty: process attributes
+// position in space
+// surface normal
+// 2D texture coordinate
+
+//in vec4 aPosition;
+// w = 1 for points
+layout (location = 0) in vec4 aPosition; // position is the first attribute
+layout (location = 1) in vec3 aNormal;
+// 2D uv texture coordinate
+//layout (location = 2) in vec2 aTexCoord;
+layout (location = 2) in vec4 aTexCoord;
+
+// TRANSFORM UNIFORMS
+uniform mat4 uModelMatrix;
+uniform mat4 uViewMatrix;
+uniform mat4 uProjectionMatrix;
+uniform mat4 uViewProjectionMatrix;
+
+
+// VARYINGS
+
+// Per-vertex: send final color
+// out vec4 vColor;
+// Per-fragment: send to FS to calculate color
+out vec4 vNormal;
+
+//out vec2 vTexCoord;
+out vec4 vTexCoord;
+
+void main()
+{
+	// REQUIRED: set this value: gl_Position
+	// this is the only thing you have to do in a vertex shader
+	// problem: gl_Position is in "clip-space"
+	// further: aPosition is in "object-space"
+	//gl_Position = aPosition;
+	
+	// default is object-space
+	// position in world-space (nope)
+	//vec4 worldPos = uModelMatrix * aPosition;
+	//gl_Position = worldPos;
+	
+	// position in camera-space (still not quite)
+	//vec4 viewPos = uViewMatrix * uModelMatrix * aPosition;
+	//vec4 viewPos = uViewMatrix * worldPos;
+	//gl_Position = viewPos;
+	
+	// position in clip-space (yes)
+	//vec4 clipPos = uProjectionMatrix * uViewMatrix * uModelMatrix * aPosition;
+	//vec4 clipPos = uViewProjectionMatrix * worldPos;
+    //vec4 clipPos = uProjectionMatrix * viewPos;
+	
+	// POSITION PIPELINE
+	mat4 modelViewMatrix = uViewMatrix * uModelMatrix;
+	vec4 viewPos = modelViewMatrix * aPosition;
+	vec4 clipPos = uProjectionMatrix * viewPos;
+	gl_Position = clipPos;
+	
+	// NORMAL PIPELINE
+	mat3 normalMatrix = transpose(inverse(mat3(modelViewMatrix)));
+	vec3 normCamera = normalMatrix * aNormal;
+	
+	// TEXCOORD PIPELINE
+	mat4 atlasMat = mat4(0.5, 0.0, 0.0, 0.0,
+						 0.0, 0.5, 0.0, 0.0,
+						 0.0, 0.0, 1.0, 0.0,
+						 0.25, 0.25, 0.0, 1.0);
+	vec4 uv_atlas = atlasMat * aTexCoord;
+	
+	// set varyings
+	// Per-vertex: Calculate and output a final color
+	// vColor = vec4(aNormal * 0.5 + 0.5, 1.0);
+	
+	// Per-fragment: pass elements FS needs to calculate final color
+	
+	//vNormal = vec4(aNormal, 0.0);
+	vNormal = vec4(normCamera, 0.0);
+	
+	// texture coordinates
+	vTexCoord = uv_atlas;
+	
+	// display textures in clip space
+	//gl_Position = uProjectionMatrix * modelViewMatrix * aTexCoord;
+}

@@ -1,0 +1,30 @@
+#version 300 es
+//#version 450 // for desktop
+
+#ifdef GL_ES
+precision highp float;
+#endif
+
+// if there are multiple layers, use the first one
+layout (location = 0) out vec4 rtFragColor;
+//out vec4 rtFragColor;
+
+// VARYINGS: varyings are read-only
+// Per-vertex: recieve final color from VS
+in vec4 vColor;
+
+// Per-fragment: calculate here
+in vec4 vNormal;
+in vec4 vTexCoord;
+
+void main()
+{
+	// Per-vertex: input is just final color
+	//rtFragColor = vColor;
+	
+	// Per-fragment: calculate final color
+	//vec4 N = normalize(vNormal);
+	//rtFragColor = vec4(N.xyz * 0.5 + 0.5, 1.0);
+	
+	rtFragColor = vTexCoord;
+}
