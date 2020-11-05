@@ -19,6 +19,7 @@ uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
 uniform mat4 uViewProjectionMatrix;
 uniform sampler2D earth;
+uniform vec3 eyePosition;
 
 
 // VARYINGS
@@ -33,6 +34,7 @@ out vec4 vTexCoord;
 
 // varyings for phong reflectence
 out vec4 phongViewColor;
+out vec4 phongObjectColor;
 
 // utility
 float square(float n)
@@ -81,13 +83,10 @@ void initPointLight(out pointLight light, in vec4 center, in vec4 color, in floa
 	light.intensity = intensity;
 }
 
-float calcDiffuse(in pointLight light, in vec3 position, in vec3 normal, out vec3 lightVector)
+float calcDiffuse(in pointLight light, in vec3 position, in vec3 normal, in vec3 lightVector)
 {
     // lambertian reflectance
-    lightVector = light.center.xyz - position;
     float lightDist = sqrt(dot(lightVector, lightVector));
-    float invDist = 1.0 / lightDist;
-    lightVector *= invDist; // light vector is now normalized
     float diffuseCoefficient = max(0.0, dot(normal, lightVector));
     // attenuation (light falloff)
     float invIntensity = 1.0 / light.intensity;
@@ -103,11 +102,11 @@ float phongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
     return pow16(specularCoefficient);
 }
 
-vec4 calcLighting(pointLight[3] lights, vec4 position, vec3 normal)
+vec4 calcLighting(pointLight[3] lights, vec4 position, vec3 normal, vec3 eyePos)
 {
 	// lighting properties
-	vec4 ambientColor = vec4(1.0, 0.9, 1.0, 1.0);
-	float ambientIntensity = 0.00;
+	vec4 ambientColor = vec4(1.0, 1.0, 1.0, 1.0);
+	float ambientIntensity = 0.05;
 	vec4 specularReflectionColor = vec4(1.0);
 	vec4 diffuseColor = vec4(1.0);
 
@@ -116,8 +115,10 @@ vec4 calcLighting(pointLight[3] lights, vec4 position, vec3 normal)
     // loop through each light
     for (int i = lights.length() - 1; i >= 0; --i) {
 
-        vec3 lightVector = lights[i].center.xyz - position.xyz;
-        vec3 viewVector = vec3(0.0) - position.xyz; // not normalized
+    	vec3 lightVector = lights[i].center.xyz - position.xyz;
+    	float invDist = 1.0 / sqrt(dot(lightVector, lightVector));
+    	lightVector *= invDist; // light vector is now normalized
+        vec3 viewVector = eyePos - position.xyz; // not normalized
         float invLength = 1.0 / sqrt(dot(viewVector, viewVector));
         viewVector *= invLength; // normalized
 
@@ -136,6 +137,7 @@ vec4 calcLighting(pointLight[3] lights, vec4 position, vec3 normal)
 void main()
 {
 	// NOTES --------------------------------------------------------------------
+	
 	// REQUIRED: set this value: gl_Position
 	// this is the only thing you have to do in a vertex shader
 	// problem: gl_Position is in "clip-space"
@@ -170,21 +172,44 @@ void main()
 	vec3 normCamera = normalMatrix * aNormal;
 	
 	// LIGHTING PIPELINE --------------------------------------------------------------------
+	
 	// define light properties in world space
 	pointLight light1, light2, light3;
-	initPointLight(light1, vec4(15.0, 0.0, 0.0, 1.0), vec4(1.0), 9.0);
-	initPointLight(light2, vec4(-15.0, 0.0, .0, 1.0), vec4(1.0), 15.0);
+	initPointLight(light1, vec4(15.0, 0.0, 9.0, 1.0), vec4(1.0), 20.0);
+	initPointLight(light2, vec4(-15.0, 0.0, 0.0, 1.0), vec4(1.0), 15.0);
 	initPointLight(light3, vec4(0.0, 15.0, 0.0, 1.0), vec4(1.0), 25.0);
-	pointLight[3] lights;
-	lights[0] = light1;
-	lights[1] = light2;
-	lights[2] = light3;
+	
 	// convert light properties to view space
-	light1.center = light1.center * uViewMatrix;
-	light2.center = light2.center * uViewMatrix;
-	light3.center = light3.center * uViewMatrix;
+	pointLight light1View = light1;
+	pointLight light2View = light1;
+	pointLight light3View = light1;
+	light1View.center = uViewMatrix * light1.center;
+	light2View.center = uViewMatrix * light2.center;
+	light3View.center = uViewMatrix * light3.center;
+	pointLight[3] lightsView;
+	lightsView[0] = light1View;
+	lightsView[1] = light2View;
+	lightsView[2] = light3View;
+	
+	// convert light properties to object space
+	pointLight light1Object = light1;
+	pointLight light2Object = light1;
+	pointLight light3Object = light1;
+	light1Object.center = inverse(uViewMatrix) * light1.center;
+	light2Object.center = inverse(uViewMatrix) * light2.center;
+	light3Object.center = inverse(uViewMatrix) * light3.center;
+	pointLight[3] lightsObject;
+	lightsObject[0] = light1Object;
+	lightsObject[1] = light2Object;
+	lightsObject[2] = light3Object;
+	
 	// view-space phong reflectence
-	phongViewColor = calcLighting(lights, viewPos, normCamera);
+	vec4 camPos = uViewMatrix * vec4(eyePosition, 1.0); // this is currently wrong
+	//camPos = vec4(0.0);
+	phongViewColor = calcLighting(lightsView, viewPos, normCamera, camPos.xyz);
+	
+	// object-space phong reflectence
+	phongObjectColor = calcLighting(lightsObject, aPosition, aNormal, eyePosition);
 	
 	// TEXCOORD PIPELINE --------------------------------------------------------------------
 	mat4 atlasMat = mat4(1.0, 0.0, 0.0, 0.0,
@@ -194,7 +219,9 @@ void main()
 	vec4 uv_atlas = atlasMat * aTexCoord;
 	
 	// texture sphere
-	phongViewColor *= texture(earth, uv_atlas.xy);
+	vec4 earthColor = texture(earth, uv_atlas.xy);
+	phongViewColor *= earthColor;
+	phongObjectColor *= earthColor;
 	
 	// VARYINGS --------------------------------------------------------------------
 	// Per-vertex: Calculate and output a final color
