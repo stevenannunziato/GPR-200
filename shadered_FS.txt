@@ -174,13 +174,12 @@ void main()
 	
 	// sample textures
 	vec4 earthColor = texture(earth, vTexCoord.xy);
-
 	
 	// per-vertex phong
-	//rtFragColor = phongViewColor;
-	//rtFragColor = phongObjectColor;
+	//rtFragColor = phongViewColor; // view-space
+	//rtFragColor = phongObjectColor; // object-space
 	
 	// per-frag phong
-	rtFragColor = phongViewFragColor * earthColor;
-	//rtFragColor = phongObjFragColor * earthColor;
+	//rtFragColor = phongViewFragColor * earthColor; // view-space
+	rtFragColor = phongObjFragColor * earthColor; // object-space
 }
