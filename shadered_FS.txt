@@ -17,6 +17,9 @@ in vec4 vColor;
 in vec4 vNormal;
 in vec4 vTexCoord;
 
+// phong
+in vec4 phongViewColor;
+
 void main()
 {
 	// Per-vertex: input is just final color
@@ -26,5 +29,7 @@ void main()
 	//vec4 N = normalize(vNormal);
 	//rtFragColor = vec4(N.xyz * 0.5 + 0.5, 1.0);
 	
-	rtFragColor = vTexCoord;
+	//rtFragColor = vTexCoord;
+	
+	rtFragColor = phongViewColor;
 }

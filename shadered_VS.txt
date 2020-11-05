@@ -30,8 +30,87 @@ out vec4 vNormal;
 //out vec2 vTexCoord;
 out vec4 vTexCoord;
 
+// varyings for phong reflectence
+out vec4 phongViewColor;
+
+// utility
+float square(float n)
+{
+	return n * n;
+}
+float pow16(float n)
+{
+	n *= n; // power = 2
+	n *= n; // power = 4
+	n *= n; // power = 8
+	n *= n; // power = 16
+	return n;
+}
+float pow32(float n)
+{
+	n *= n; // power = 2
+	n *= n; // power = 4
+	n *= n; // power = 8
+	n *= n; // power = 16
+	n *= n; // power = 32
+	return n;
+}
+float pow64(float n)
+{
+	n *= n; // power = 2
+	n *= n; // power = 4
+	n *= n; // power = 8
+	n *= n; // power = 16
+	n *= n; // power = 32
+	n *= n; // power = 64
+	return n;
+}
+
+// structure for lights
+struct pointLight
+{
+	vec4 center;
+	vec4 color;
+	float intensity;
+};
+void initPointLight(out pointLight light, in vec4 center, in vec4 color, in float intensity)
+{
+	light.center = center;
+	light.color = color;
+	light.intensity = intensity;
+}
+
+float calcDiffuse(in pointLight light, in vec3 position, in vec3 normal, out vec3 lightVector)
+{
+    // lambertian reflectance
+    lightVector = light.center.xyz - position;
+    float lightDist = sqrt(dot(lightVector, lightVector));
+    float invDist = 1.0 / lightDist;
+    lightVector *= invDist; // light vector is now normalized
+    float diffuseCoefficient = max(0.0, dot(normal, lightVector));
+    // attenuation (light falloff)
+    float invIntensity = 1.0 / light.intensity;
+    float attenuatedIntensity = 1.0 / (1.0 + (lightDist * invIntensity) + square(lightDist * invIntensity));
+    return diffuseCoefficient * attenuatedIntensity;
+}
+// calculations for specular highlights
+float phongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
+{
+    // phong reflectance
+    vec3 reflectedLight = reflect(-lightVector, normal);
+    float specularCoefficient = max(0.0, dot(viewVector, reflectedLight));
+    return pow16(specularCoefficient);
+}
+
 void main()
 {
+
+	// lighting properties
+	vec4 ambientColor = vec4(1.0, 0.9, 1.0, 1.0);
+	float ambientIntensity = 0.01;
+	vec4 specularReflectionColor = vec4(1.0);
+	vec4 diffuseColor = vec4(1.0);
+	
 	// REQUIRED: set this value: gl_Position
 	// this is the only thing you have to do in a vertex shader
 	// problem: gl_Position is in "clip-space"
@@ -56,6 +135,21 @@ void main()
 	// POSITION PIPELINE
 	mat4 modelViewMatrix = uViewMatrix * uModelMatrix;
 	vec4 viewPos = modelViewMatrix * aPosition;
+	// vertices are now in view-space
+	// define light properties in world space
+	pointLight light1, light2, light3;
+	initPointLight(light1, vec4(-2.0, 0.0, 0.0, 1.0), vec4(0.0, 1.0, 0.0, 1.0), 20.0);
+	initPointLight(light2, vec4(2.0, 0.0, -1.0, 1.0), vec4(0.0, 0.0, 1.0, 1.0), 10.0);
+	initPointLight(light3, vec4(0.0, 2.0, -1.0, 1.0), vec4(1.0, 0.0, 0.0, 1.0), 10.0);
+	pointLight[3] lights;
+	lights[0] = light1;
+	lights[1] = light2;
+	lights[2] = light3;
+	// convert light properties to view space
+	light1.center = light1.center * uViewMatrix;
+	light2.center = light2.center * uViewMatrix;
+	light3.center = light3.center * uViewMatrix;
+	
 	vec4 clipPos = uProjectionMatrix * viewPos;
 	gl_Position = clipPos;
 	
@@ -63,7 +157,35 @@ void main()
 	mat3 normalMatrix = transpose(inverse(mat3(modelViewMatrix)));
 	vec3 normCamera = normalMatrix * aNormal;
 	
+	// view-space phong reflectence
+	//vec3 lightVector;
+	//vec3 viewVector = normalize(vec3(0.0) - viewPos.xyz);
+	//float diffuseIntensityView = calcDiffuse(light1, viewPos.xyz, normCamera, lightVector);
+	//float specularIntensityView = phongSpecular(lightVector, viewVector, normCamera);
+	vec4 finalAmbient = ambientIntensity * ambientColor;
+    vec4 summedColor = vec4(0.0);
+    // loop through each light
+    for (int i = lights.length() - 1; i >= 0; --i) {
+
+        vec3 lightVector = lights[i].center.xyz - viewPos.xyz;
+        vec3 viewVector = vec3(0.0) - viewPos.xyz; // not normalized
+        float invLength = 1.0 / sqrt(dot(viewVector, viewVector));
+        viewVector *= invLength; // normalized
+
+        // first calculate diffuse intensity
+        float diffuseIntensity = calcDiffuse(lights[i], viewPos.xyz, normCamera, lightVector);
+
+        // next calculate specular intensity
+        float specularIntensity = phongSpecular(lightVector, viewVector, normCamera);
+
+        // final calculation
+        summedColor += (diffuseIntensity * diffuseColor + specularIntensity * specularReflectionColor) * lights[i].color;
+    }
+    phongViewColor = finalAmbient + summedColor;
+	//phongViewColor = ambientColor * ambientIntensity + (vec4(1.0) * diffuseIntensityView + specularIntensityView * specularReflectionColor) * light1.color;
+	
 	// TEXCOORD PIPELINE
+	// scaled and shifted
 	mat4 atlasMat = mat4(0.5, 0.0, 0.0, 0.0,
 						 0.0, 0.5, 0.0, 0.0,
 						 0.0, 0.0, 1.0, 0.0,
