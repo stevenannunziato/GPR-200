@@ -9,6 +9,9 @@ precision highp float;
 layout (location = 0) out vec4 rtFragColor;
 //out vec4 rtFragColor;
 
+// uniforms
+uniform sampler2D earth;
+
 // VARYINGS: varyings are read-only
 // Per-vertex: recieve final color from VS
 in vec4 vColor;
@@ -169,14 +172,15 @@ void main()
 	vec4 phongViewFragColor = calcLighting(lightsView, vertexPosView, normalView, eyePosView);
 	vec4 phongObjFragColor = calcLighting(lightsObj, vertexPosObj, normalObj, eyePosObj);
 	
-	// apply textures
-	// ???
+	// sample textures
+	vec4 earthColor = texture(earth, vTexCoord.xy);
+
 	
 	// per-vertex phong
 	//rtFragColor = phongViewColor;
 	//rtFragColor = phongObjectColor;
 	
 	// per-frag phong
-	//rtFragColor = phongViewFragColor;
-	rtFragColor = phongObjFragColor;
+	rtFragColor = phongViewFragColor * earthColor;
+	//rtFragColor = phongObjFragColor * earthColor;
 }

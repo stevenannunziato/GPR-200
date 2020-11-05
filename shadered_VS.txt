@@ -179,7 +179,8 @@ void main()
 	
 	// animate vertex positions
 	vec4 aPos = aPosition;
-	aPos.y *= 1.2 + sin(time);
+	aPos.y *= 1.5 + sin(time) * 0.5;
+	aPos.x *= 1.5 + sin(time + 3.14) * 0.5;
 	
 	mat4 modelViewMatrix = uViewMatrix * uModelMatrix;
 	vec4 viewPos = modelViewMatrix * aPos;
@@ -202,8 +203,8 @@ void main()
 	
 	// convert light properties to view space
 	pointLight light1View = light1;
-	pointLight light2View = light1;
-	pointLight light3View = light1;
+	pointLight light2View = light2;
+	pointLight light3View = light3;
 	light1View.center = uViewMatrix * light1.center;
 	light2View.center = uViewMatrix * light2.center;
 	light3View.center = uViewMatrix * light3.center;
@@ -214,8 +215,8 @@ void main()
 	
 	// convert light properties to object space
 	pointLight light1Object = light1;
-	pointLight light2Object = light1;
-	pointLight light3Object = light1;
+	pointLight light2Object = light2;
+	pointLight light3Object = light3;
 	light1Object.center = inverse(uViewMatrix) * light1.center;
 	light2Object.center = inverse(uViewMatrix) * light2.center;
 	light3Object.center = inverse(uViewMatrix) * light3.center;
@@ -260,7 +261,7 @@ void main()
 	// set varyings for phong per-frag
 	light1posView = light1View.center;
 	light2posView = light2View.center;
-	light3posView = light2View.center;
+	light3posView = light3View.center;
 	light1posObj = light1Object.center;
 	light2posObj = light2Object.center;
 	light3posObj = light3Object.center;
