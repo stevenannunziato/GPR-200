@@ -18,6 +18,7 @@ uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
 uniform mat4 uViewProjectionMatrix;
+uniform sampler2D earth;
 
 
 // VARYINGS
@@ -107,7 +108,7 @@ void main()
 
 	// lighting properties
 	vec4 ambientColor = vec4(1.0, 0.9, 1.0, 1.0);
-	float ambientIntensity = 0.01;
+	float ambientIntensity = 0.00;
 	vec4 specularReflectionColor = vec4(1.0);
 	vec4 diffuseColor = vec4(1.0);
 	
@@ -138,9 +139,9 @@ void main()
 	// vertices are now in view-space
 	// define light properties in world space
 	pointLight light1, light2, light3;
-	initPointLight(light1, vec4(-2.0, 0.0, 0.0, 1.0), vec4(0.0, 1.0, 0.0, 1.0), 20.0);
-	initPointLight(light2, vec4(2.0, 0.0, -1.0, 1.0), vec4(0.0, 0.0, 1.0, 1.0), 10.0);
-	initPointLight(light3, vec4(0.0, 2.0, -1.0, 1.0), vec4(1.0, 0.0, 0.0, 1.0), 10.0);
+	initPointLight(light1, vec4(5.0, 0.0, 0.0, 1.0), vec4(1.0), 4.0);
+	initPointLight(light2, vec4(-5.0, 0.0, .0, 1.0), vec4(1.0), 4.0);
+	initPointLight(light3, vec4(0.0, 2.0, 0.0, 1.0), vec4(1.0), 4.0);
 	pointLight[3] lights;
 	lights[0] = light1;
 	lights[1] = light2;
@@ -180,9 +181,12 @@ void main()
 
         // final calculation
         summedColor += (diffuseIntensity * diffuseColor + specularIntensity * specularReflectionColor) * lights[i].color;
+        // For this assignment, final color will just be the two above values summed
+        //summedColor += diffuseIntensity + specularIntensity;
     }
     phongViewColor = finalAmbient + summedColor;
 	//phongViewColor = ambientColor * ambientIntensity + (vec4(1.0) * diffuseIntensityView + specularIntensityView * specularReflectionColor) * light1.color;
+	//phongViewColor = vec4(vec3(summedColor), 1.0);
 	
 	// TEXCOORD PIPELINE
 	// scaled and shifted
@@ -191,6 +195,9 @@ void main()
 						 0.0, 0.0, 1.0, 0.0,
 						 0.25, 0.25, 0.0, 1.0);
 	vec4 uv_atlas = atlasMat * aTexCoord;
+	
+	// texture sphere
+	phongViewColor *= texture(earth, uv_atlas.xy);
 	
 	// set varyings
 	// Per-vertex: Calculate and output a final color
