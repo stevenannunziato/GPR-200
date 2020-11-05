@@ -20,7 +20,7 @@ uniform mat4 uProjectionMatrix;
 uniform mat4 uViewProjectionMatrix;
 uniform sampler2D earth;
 uniform vec3 eyePosition;
-
+uniform float time;
 
 // VARYINGS
 
@@ -35,6 +35,22 @@ out vec4 vTexCoord;
 // varyings for phong reflectence
 out vec4 phongViewColor;
 out vec4 phongObjectColor;
+// per-fragment calculations
+out vec4 light1posView;
+out vec4 light2posView;
+out vec4 light3posView;
+out vec4 light1posObj;
+out vec4 light2posObj;
+out vec4 light3posObj;
+out float light1intensity;
+out float light2intensity;
+out float light3intensity;
+out vec4 vertexPosView;
+out vec3 normalView;
+out vec4 vertexPosObj;
+out vec3 normalObj;
+out vec3 eyePosView;
+out vec3 eyePosObj;
 
 // utility
 float square(float n)
@@ -160,8 +176,13 @@ void main()
     //vec4 clipPos = uProjectionMatrix * viewPos;
 	
 	// POSITION PIPELINE --------------------------------------------------------------------
+	
+	// animate vertex positions
+	vec4 aPos = aPosition;
+	aPos.y *= 1.2 + sin(time);
+	
 	mat4 modelViewMatrix = uViewMatrix * uModelMatrix;
-	vec4 viewPos = modelViewMatrix * aPosition;
+	vec4 viewPos = modelViewMatrix * aPos;
 	// vertices are now in view-space
 	
 	vec4 clipPos = uProjectionMatrix * viewPos;
@@ -204,7 +225,8 @@ void main()
 	lightsObject[2] = light3Object;
 	
 	// view-space phong reflectence
-	vec4 camPos = uViewMatrix * vec4(eyePosition, 1.0); // this is currently wrong
+	// this is currently wrong
+	vec4 camPos = uViewMatrix * vec4(eyePosition, 1.0);
 	//camPos = vec4(0.0);
 	phongViewColor = calcLighting(lightsView, viewPos, normCamera, camPos.xyz);
 	
@@ -234,6 +256,23 @@ void main()
 	
 	// texture coordinates
 	vTexCoord = uv_atlas;
+	
+	// set varyings for phong per-frag
+	light1posView = light1View.center;
+	light2posView = light2View.center;
+	light3posView = light2View.center;
+	light1posObj = light1Object.center;
+	light2posObj = light2Object.center;
+	light3posObj = light3Object.center;
+	light1intensity = light1.intensity;
+	light2intensity = light2.intensity;
+	light3intensity = light3.intensity;
+	vertexPosView = viewPos;
+	normalView = normCamera;
+	vertexPosObj = aPosition;
+	normalObj = aNormal;
+	eyePosView = camPos.xyz;
+	eyePosObj = eyePosition;
 	
 	// display textures in clip space
 	//gl_Position = uProjectionMatrix * modelViewMatrix * aTexCoord;

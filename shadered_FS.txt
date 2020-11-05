@@ -20,6 +20,120 @@ in vec4 vTexCoord;
 // phong
 in vec4 phongViewColor;
 in vec4 phongObjectColor;
+// per-fragment calculations
+in vec4 light1posView;
+in vec4 light2posView;
+in vec4 light3posView;
+in vec4 light1posObj;
+in vec4 light2posObj;
+in vec4 light3posObj;
+in float light1intensity;
+in float light2intensity;
+in float light3intensity;
+in vec4 vertexPosView;
+in vec3 normalView;
+in vec4 vertexPosObj;
+in vec3 normalObj;
+in vec3 eyePosView;
+in vec3 eyePosObj;
+
+float square(float n)
+{
+	return n * n;
+}
+float pow16(float n)
+{
+	n *= n; // power = 2
+	n *= n; // power = 4
+	n *= n; // power = 8
+	n *= n; // power = 16
+	return n;
+}
+float pow32(float n)
+{
+	n *= n; // power = 2
+	n *= n; // power = 4
+	n *= n; // power = 8
+	n *= n; // power = 16
+	n *= n; // power = 32
+	return n;
+}
+float pow64(float n)
+{
+	n *= n; // power = 2
+	n *= n; // power = 4
+	n *= n; // power = 8
+	n *= n; // power = 16
+	n *= n; // power = 32
+	n *= n; // power = 64
+	return n;
+}
+
+// structure for lights
+struct pointLight
+{
+	vec4 center;
+	vec4 color;
+	float intensity;
+};
+void initPointLight(out pointLight light, in vec4 center, in vec4 color, in float intensity)
+{
+	light.center = center;
+	light.color = color;
+	light.intensity = intensity;
+}
+
+float calcDiffuse(in pointLight light, in vec3 position, in vec3 normal, in vec3 lightVector)
+{
+    // lambertian reflectance
+    float lightDist = sqrt(dot(lightVector, lightVector));
+    float diffuseCoefficient = max(0.0, dot(normal, lightVector));
+    // attenuation (light falloff)
+    float invIntensity = 1.0 / light.intensity;
+    float attenuatedIntensity = 1.0 / (1.0 + (lightDist * invIntensity) + square(lightDist * invIntensity));
+    return diffuseCoefficient * attenuatedIntensity;
+}
+// calculations for specular highlights
+float phongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
+{
+    // phong reflectance
+    vec3 reflectedLight = reflect(-lightVector, normal);
+    float specularCoefficient = max(0.0, dot(viewVector, reflectedLight));
+    return pow64(specularCoefficient);
+}
+
+vec4 calcLighting(in pointLight[3] lights, vec4 position, vec3 normal, vec3 eyePos)
+{
+	
+	// lighting properties
+	vec4 ambientColor = vec4(1.0, 1.0, 1.0, 1.0);
+	float ambientIntensity = 0.05;
+	vec4 specularReflectionColor = vec4(1.0);
+	vec4 diffuseColor = vec4(1.0);
+
+	vec4 finalAmbient = ambientIntensity * ambientColor;
+    vec4 summedColor = vec4(0.0);
+    // loop through each light
+    for (int i = lights.length() - 1; i >= 0; --i) {
+
+    	vec3 lightVector = lights[i].center.xyz - position.xyz;
+    	float invDist = 1.0 / sqrt(dot(lightVector, lightVector));
+    	lightVector *= invDist; // light vector is now normalized
+        vec3 viewVector = eyePos - position.xyz; // not normalized
+        float invLength = 1.0 / sqrt(dot(viewVector, viewVector));
+        viewVector *= invLength; // normalized
+
+        // first calculate diffuse intensity
+        float diffuseIntensity = calcDiffuse(lights[i], position.xyz, normal, lightVector);
+
+        // next calculate specular intensity
+        float specularIntensity = phongSpecular(lightVector, viewVector, normal);
+
+        // final calculation
+        summedColor += (diffuseIntensity * diffuseColor + specularIntensity * specularReflectionColor) * lights[i].color;
+    }
+    return finalAmbient + summedColor;
+}
 
 void main()
 {
@@ -32,7 +146,37 @@ void main()
 	
 	//rtFragColor = vTexCoord;
 	
+	// calculations for fragment phong
+	// view-space
+	pointLight light1View, light2View, light3View, light1Obj, light2Obj, light3Obj;
+	initPointLight(light1View, light1posView, vec4(1.0), 1.0);
+	initPointLight(light2View, light2posView, vec4(1.0), 1.0);
+	initPointLight(light3View, light3posView, vec4(1.0), 1.0);
+	pointLight[3] lightsView;
+	lightsView[0] = light1View;
+	lightsView[1] = light2View;
+	lightsView[2] = light3View;
+	// object-space
+	initPointLight(light1Obj, light1posObj, vec4(1.0), 4.0);
+	initPointLight(light2Obj, light2posObj, vec4(1.0), 1.0);
+	initPointLight(light3Obj, light3posObj, vec4(1.0), 1.0);
+	pointLight[3] lightsObj;
+	lightsObj[0] = light1Obj;
+	lightsObj[1] = light2Obj;
+	lightsObj[2] = light3Obj;
+	
+	// perform calculations for lighting
+	vec4 phongViewFragColor = calcLighting(lightsView, vertexPosView, normalView, eyePosView);
+	vec4 phongObjFragColor = calcLighting(lightsObj, vertexPosObj, normalObj, eyePosObj);
+	
+	// apply textures
+	// ???
+	
 	// per-vertex phong
-	rtFragColor = phongViewColor;
+	//rtFragColor = phongViewColor;
 	//rtFragColor = phongObjectColor;
+	
+	// per-frag phong
+	//rtFragColor = phongViewFragColor;
+	rtFragColor = phongObjFragColor;
 }
