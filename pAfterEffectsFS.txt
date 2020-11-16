@@ -1,0 +1,26 @@
+#version 300 es
+
+#ifdef GL_ES
+precision highp float;
+#endif
+
+layout (location = 0) out vec4 rtFragColor;
+
+in vec2 vTexCoord;
+
+uniform vec2 uResolution;
+// get edge detection pass
+uniform sampler2D uTex; // represented by integer (0)
+
+void main()
+{
+	// calculate uv and sampler
+	//vec2 uv = gl_FragCoord.xy / uResolution;
+	vec2 uv = vTexCoord;
+	vec4 col = texture(uTex, uv);
+
+	// test
+	//rtFragColor = vec4(1.0, 0.5, 0.0, 1.0);
+	//rtFragColor = vec4(uv, 1.0, 1.0);
+	rtFragColor = col * 0.5;
+}
