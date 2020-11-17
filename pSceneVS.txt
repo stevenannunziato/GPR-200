@@ -1,12 +1,16 @@
-#version 300 es
+#version 450
 
 layout (location = 0) in vec4 aPosition;
 layout (location = 1) in vec3 aNormal;
 
 uniform mat4 uModelMat, uViewMat, uProjMat;
 uniform float uTime;
+uniform vec3 eyePosition;
 
+// varyings
 out vec4 vNormal;
+out vec4 vVertexPos;
+out vec4 vEyePos;
 
 void main()
 {
@@ -18,5 +22,8 @@ void main()
 	// convert to clip-space
 	gl_Position = uProjMat * uViewMat * posWorld;
 	
+	// set varyings
 	vNormal = vec4(aNormal, 1.0);
+	vVertexPos = posWorld;
+	vEyePos = vec4(eyePosition, 0.0);
 }

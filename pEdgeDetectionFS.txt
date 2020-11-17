@@ -1,4 +1,4 @@
-#version 300 es
+#version 450
 
 #ifdef GL_ES
 precision highp float;
@@ -16,11 +16,11 @@ void main()
 {
 	// calculate uv and sampler
 	//vec2 uv = gl_FragCoord.xy / uResolution;
-	vec2 uv = vTexCoord;
+	vec2 uv = vTexCoord * 0.5 + 0.5;
 	vec4 col = texture(uTex, uv);
 
 	// test
 	//rtFragColor = vec4(1.0, 0.5, 0.0, 1.0);
 	//rtFragColor = vec4(uv, 1.0, 1.0);
-	rtFragColor = 1.0 - col;
+	rtFragColor = col;
 }

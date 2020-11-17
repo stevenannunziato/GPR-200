@@ -1,4 +1,4 @@
-#version 300 es
+#version 450
 
 #ifdef GL_ES
 precision highp float;
@@ -6,6 +6,7 @@ precision highp float;
 
 layout (location = 0) out vec4 rtFragColor;
 
+in vec4 vPosClip;
 in vec2 vTexCoord;
 
 uniform vec2 uResolution;
@@ -14,13 +15,20 @@ uniform sampler2D uTex; // represented by integer (0)
 
 void main()
 {
-	// calculate uv and sampler
+	// calculate uv
 	//vec2 uv = gl_FragCoord.xy / uResolution;
-	vec2 uv = vTexCoord;
+	// manual perspective divide
+	vec4 posNDC = vPosClip / vPosClip.w; // [-1, 1]
+	vec4 posScreen = posNDC * 0.5 + 0.5; // [0, 1]
+	//vec2 uv = posScreen.xy;
+	vec2 uv = vTexCoord * 0.5 + 0.5;
+	
+	// sample from previous pass
 	vec4 col = texture(uTex, uv);
 
 	// test
 	//rtFragColor = vec4(1.0, 0.5, 0.0, 1.0);
 	//rtFragColor = vec4(uv, 1.0, 1.0);
-	rtFragColor = col * 0.5;
+	rtFragColor = col;
+	//rtFragColor = vPosClip;
 }
