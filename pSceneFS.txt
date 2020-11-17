@@ -8,10 +8,11 @@ layout (location = 0) out vec4 rtFragColor;
 
 uniform sampler2D uCelTex;
 uniform float uTime;
+uniform vec3 eyePosition;
 
 in vec4 vNormal;
 in vec4 vVertexPos;
-in vec4 vEyePos;
+in vec4 vPosClip;
 
 // UTILITY FUNCTIONS ----------------------
 
@@ -87,7 +88,7 @@ vec4 calcCelColor(in pointLight light, in vec3 position, in vec3 normal)
 	
 	
 	// sample fake 1D texture
-	if (diffuseCoefficient > 0.7) {
+	/*if (diffuseCoefficient > 0.7) {
 		return vec4(1.0) * light.color;
 	}
 	else if (diffuseCoefficient > 0.35) {
@@ -98,11 +99,13 @@ vec4 calcCelColor(in pointLight light, in vec3 position, in vec3 normal)
 	}
 	else {
 		return vec4(vec3(0.0), 1.0);
-	}
+	}*/
 	
 	// sample 2D texture;
 	//vec4 color = texture(uCelTex, vec2(sin(uTime) * 0.5 + 0.5, max(0.0, diffuseCoefficient)));
-	//return color;
+	vec2 uv = vec2(diffuseCoefficient * 0.5 + 0.5, 0.0);
+	vec4 color = texture(uCelTex, uv);
+	return color;
 	
 }
 
@@ -128,7 +131,7 @@ float phongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
     return pow64(specularCoefficient);
 }
 
-vec4 calcLighting(in pointLight[3] lights, vec4 position, vec3 normal, vec3 eyePos)
+vec4 calcLighting(in pointLight[1] lights, vec4 position, vec3 normal, vec3 eyePos)
 {
 	
 	// lighting properties
@@ -150,11 +153,11 @@ vec4 calcLighting(in pointLight[3] lights, vec4 position, vec3 normal, vec3 eyeP
         viewVector *= invLength; // normalized
         
         // cel
-        //summedColor += calcCelColor(lights[i], position.xyz, normal);
+        summedColor += calcCelColor(lights[i], position.xyz, normal) * lights[i].color;
         
         // gooch
-        float diffuseIntensity = calcDiffuse(lights[i], position.xyz, normal, lightVector);
-        summedColor += mix(vec4(0.01, 0.0, 0.06, 1.0), vec4(1.0, 0.65, 0.0, 1.0), diffuseIntensity);
+        //float diffuseIntensity = calcDiffuse(lights[i], position.xyz, normal, lightVector);
+        //summedColor += mix(vec4(0.01, 0.0, 0.06, 1.0), vec4(1.0, 0.65, 0.0, 1.0), diffuseIntensity);
         //summedColor += mix(vec4(0.01, 0.0, 0.06, 1.0), lights[i].color, diffuseIntensity);
         
 		/*
@@ -175,14 +178,20 @@ vec4 calcLighting(in pointLight[3] lights, vec4 position, vec3 normal, vec3 eyeP
 void main()
 {
 	// initialize lights
-	vec4 lightColor = hueShift(vec3(1.0, 0.5, 0.5), uTime * 0.06);
+	vec4 lightColor = hueShift(vec3(0.9, 0.6, 0.6), uTime * 0.06);
 	pointLight light1;
-	initPointLight(light1, vec4(sin(uTime) * 5.0, 6.0, cos(uTime) * 5.0, 0.0), lightColor, 4.0);
-	pointLight[3] lights;
+	initPointLight(light1, vec4(sin(uTime) * 5.0, 6.0, cos(uTime) * 5.0, 1.0), lightColor, 4.0);
+	//initPointLight(light1, vec4(0.0, 16.0, 0.0, 1.0), lightColor, 4.0);
+	pointLight[1] lights;
 	lights[0] = light1;
 
 	// calculate lighting
-	vec4 litColor = calcLighting(lights, vVertexPos, vNormal.xyz, vEyePos.xyz);
+	vec4 litColor = calcLighting(lights, vVertexPos, vNormal.xyz, eyePosition);
 	
 	rtFragColor = litColor;
+	
+	// test
+	/*vec4 ndc = vPosClip / vPosClip.w;
+	rtFragColor = ndc * 0.5 + 0.5;
+	rtFragColor.b = 0.0;*/
 }

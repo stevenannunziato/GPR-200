@@ -7,28 +7,85 @@ precision highp float;
 layout (location = 0) out vec4 rtFragColor;
 
 in vec4 vPosClip;
-in vec2 vTexCoord;
 
 uniform vec2 uResolution;
 // get edge detection pass
 uniform sampler2D uTex; // represented by integer (0)
+uniform float uTime;
+
+// hueshift function adapted from user mAlk:
+// https://www.shadertoy.com/view/MsjXRt
+vec4 hueShift(in vec3 Color, in float Shift)
+{
+    vec3 P = vec3(0.55735) * dot(vec3(0.55735), Color);
+    vec3 U = Color - P;
+    vec3 V = cross(vec3(0.55735), U);
+    
+    Color = U * cos(Shift * 6.2832) + V * sin(Shift * 6.2832) + P;
+    return vec4(Color, 1.0);
+}
+
+// wave
+vec2 wave(in vec2 originalLocation)
+{
+    vec2 deformedLocation = originalLocation;
+    
+    // shift coordinate by a sine function of the location
+    deformedLocation.y += sin(originalLocation.x * 30.0 + uTime * 2.0) * 0.006;
+    deformedLocation.x += sin(originalLocation.y * 30.0 + uTime * 2.0) * 0.006;
+    
+    // return deformed coordinate
+    return deformedLocation;
+}
+
+// ripple
+// adapted from here: http://adrianboeing.blogspot.com/2011/02/ripple-effect-in-webgl.html
+vec2 ripple(in vec2 originalLocation)
+{
+    // map to [-1, 1]
+    vec2 uv = originalLocation * 2.0 - 1.0;
+    
+    // find distance from center
+    float dist = dot(uv, uv); // distance squared
+    float invLength = 1.0 / sqrt(dist);
+    dist *= invLength;
+    
+    // deform based on sombrero function
+    vec2 deformedLocation = uv + (uv / dist) * sin(dist * 20.0 - uTime * 4.0) * 0.015;
+    
+    // return deformed coordinate
+    return deformedLocation * 0.5 + 0.5;
+}
 
 void main()
 {
 	// calculate uv
 	//vec2 uv = gl_FragCoord.xy / uResolution;
+	
 	// manual perspective divide
 	vec4 posNDC = vPosClip / vPosClip.w; // [-1, 1]
 	vec4 posScreen = posNDC * 0.5 + 0.5; // [0, 1]
-	//vec2 uv = posScreen.xy;
-	vec2 uv = vTexCoord * 0.5 + 0.5;
+	vec2 uv = posScreen.xy;
+	
+	// wave uv a little bit
+	uv = ripple(uv);
+	//uv = wave(uv);
 	
 	// sample from previous pass
 	vec4 col = texture(uTex, uv);
+	
+	// offset colors for rainbow effect
+	float alpha = col.a;
+	// find distance from center
+    float dist = dot(uv, uv); // distance squared
+    float invLength = 1.0 / sqrt(dist);
+    dist *= invLength; // normalized
+    col = hueShift(col.xyz, dist * 2.0 + uTime * 0.5);
+    col.a = alpha;
 
-	// test
+	// test and display
 	//rtFragColor = vec4(1.0, 0.5, 0.0, 1.0);
-	//rtFragColor = vec4(uv, 1.0, 1.0);
+	//rtFragColor = vec4(uv, 0.0, 1.0);
 	rtFragColor = col;
 	//rtFragColor = vPosClip;
 }

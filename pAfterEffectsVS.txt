@@ -4,16 +4,14 @@
 layout (location = 0) in vec4 aPosition;
 //layout (location = 2) in vec2 aTexcoord; does not exist for a ScreenQuadNDC
 
-uniform mat4 uModelMatrix, uViewMatrix, uProjectionMatrix;
+//uniform mat4 uModelMatrix, uViewMatrix, uProjectionMatrix;
 
 out vec4 vPosClip;
-out vec2 vTexCoord;
 
 void main()
 {
-	gl_Position = aPosition;
+	// zoom in slightly to not get outlines on the edges of the screen
+	gl_Position = aPosition * vec4(0.98, 0.98, 1.0, 1.0);
 	// pass clip pos
-	vec4 clipPos = uProjectionMatrix * uViewMatrix * uModelMatrix * aPosition;
-	vPosClip = clipPos;
-	vTexCoord = aPosition.xy;
+	vPosClip = gl_Position;
 }

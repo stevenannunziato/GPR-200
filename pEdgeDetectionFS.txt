@@ -37,7 +37,7 @@ void main()
 	// https://www.shadertoy.com/view/wsGXRm
 	vec2 p = gl_FragCoord.xy;
     
-	// simple sobel edge detection
+	// sobel edge detection
     float gx;
     gx += -1.0 * lookup(p, -1.0, -1.0);
     gx += -2.0 * lookup(p, -1.0,  0.0);
@@ -59,10 +59,11 @@ void main()
     float g = gx*gx + gy*gy;
     float g2 = g * 0.5;
     
-    vec4 sobelColor = vec4(g, g, g, 1.0);
+    // determine final outline color
+    vec4 sobelColor = vec4(g2, 0.0, 0.0, 0.99);
     // add sobel on top of sampled image from scene pass
     vec4 col = texture(uTex, uv);
-    col -= sobelColor;
+    col = sobelColor;
     
     rtFragColor = col;
 	
