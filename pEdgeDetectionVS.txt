@@ -1,4 +1,4 @@
-#version 300 es
+#version 450
 
 // attributes
 layout (location = 0) in vec4 aPosition;
@@ -9,5 +9,5 @@ out vec2 vTexCoord;
 void main()
 {
 	gl_Position = aPosition;
-	vTexCoord = aPosition.xy * 0.5 + 0.5; // NDC [-1, 1] -> screen [0, 1]
+	vTexCoord = aPosition.xy; // passes NDC [-1, 1]
 }

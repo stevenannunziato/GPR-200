@@ -6,6 +6,7 @@ precision highp float;
 
 layout (location = 0) out vec4 rtFragColor;
 
+uniform sampler2D uCelTex;
 uniform float uTime;
 
 in vec4 vNormal;
@@ -13,6 +14,19 @@ in vec4 vVertexPos;
 in vec4 vEyePos;
 
 // UTILITY FUNCTIONS ----------------------
+
+// hueshift function adapted from user mAlk:
+// https://www.shadertoy.com/view/MsjXRt
+vec4 hueShift(in vec3 Color, in float Shift)
+{
+    vec3 P = vec3(0.55735) * dot(vec3(0.55735), Color);
+    vec3 U = Color - P;
+    vec3 V = cross(vec3(0.55735), U);
+    
+    Color = U * cos(Shift * 6.2832) + V * sin(Shift * 6.2832) + P;
+    return vec4(Color, 1.0);
+}
+
 float square(float n)
 {
 	return n * n;
@@ -46,6 +60,7 @@ float pow64(float n)
 }
 
 // LIGHTING ---------------------------
+
 // structure for lights
 struct pointLight
 {
@@ -60,15 +75,49 @@ void initPointLight(out pointLight light, in vec4 center, in vec4 color, in floa
 	light.intensity = intensity;
 }
 
+// method for cel shading referenced here:
+// https://www.cs.rpi.edu/~cutler/classes/advancedgraphics/S12/final_projects/hutchins_kim.pdf
+vec4 calcCelColor(in pointLight light, in vec3 position, in vec3 normal)
+{
+	vec3 lightVector = light.center.xyz - position.xyz;
+    float invDist = 1.0 / sqrt(dot(lightVector, lightVector));
+    lightVector *= invDist; // light vector is now normalized
+    
+	float diffuseCoefficient = dot(normal, lightVector);
+	
+	
+	// sample fake 1D texture
+	if (diffuseCoefficient > 0.7) {
+		return vec4(1.0) * light.color;
+	}
+	else if (diffuseCoefficient > 0.35) {
+		return vec4(vec3(0.66), 1.0) * light.color;
+	}
+	else if (diffuseCoefficient > 0.0) {
+		return vec4(0.33, 0.33, 0.33, 1.0) * light.color;
+	}
+	else {
+		return vec4(vec3(0.0), 1.0);
+	}
+	
+	// sample 2D texture;
+	//vec4 color = texture(uCelTex, vec2(sin(uTime) * 0.5 + 0.5, max(0.0, diffuseCoefficient)));
+	//return color;
+	
+}
+
+// lambertian reflectance
 float calcDiffuse(in pointLight light, in vec3 position, in vec3 normal, in vec3 lightVector)
 {
-    // lambertian reflectance
+
     float lightDist = sqrt(dot(lightVector, lightVector));
     float diffuseCoefficient = max(0.0, dot(normal, lightVector));
+    
     // attenuation (light falloff)
     float invIntensity = 1.0 / light.intensity;
     float attenuatedIntensity = 1.0 / (1.0 + (lightDist * invIntensity) + square(lightDist * invIntensity));
     return diffuseCoefficient * attenuatedIntensity;
+    
 }
 // calculations for specular highlights
 float phongSpecular(in vec3 lightVector, in vec3 viewVector, in vec3 normal)
@@ -99,7 +148,17 @@ vec4 calcLighting(in pointLight[3] lights, vec4 position, vec3 normal, vec3 eyeP
         vec3 viewVector = eyePos - position.xyz; // not normalized
         float invLength = 1.0 / sqrt(dot(viewVector, viewVector));
         viewVector *= invLength; // normalized
-
+        
+        // cel
+        //summedColor += calcCelColor(lights[i], position.xyz, normal);
+        
+        // gooch
+        float diffuseIntensity = calcDiffuse(lights[i], position.xyz, normal, lightVector);
+        summedColor += mix(vec4(0.01, 0.0, 0.06, 1.0), vec4(1.0, 0.65, 0.0, 1.0), diffuseIntensity);
+        //summedColor += mix(vec4(0.01, 0.0, 0.06, 1.0), lights[i].color, diffuseIntensity);
+        
+		/*
+		// Phong
         // first calculate diffuse intensity
         float diffuseIntensity = calcDiffuse(lights[i], position.xyz, normal, lightVector);
 
@@ -108,6 +167,7 @@ vec4 calcLighting(in pointLight[3] lights, vec4 position, vec3 normal, vec3 eyeP
 
         // final calculation
         summedColor += (diffuseIntensity * diffuseColor + specularIntensity * specularReflectionColor) * lights[i].color;
+        */
     }
     return finalAmbient + summedColor;
 }
@@ -115,12 +175,14 @@ vec4 calcLighting(in pointLight[3] lights, vec4 position, vec3 normal, vec3 eyeP
 void main()
 {
 	// initialize lights
+	vec4 lightColor = hueShift(vec3(1.0, 0.5, 0.5), uTime * 0.06);
 	pointLight light1;
-	initPointLight(light1, vec4(1.0, 4.5, 1.0, 0.0), vec4(1.0), 10.0);
+	initPointLight(light1, vec4(sin(uTime) * 5.0, 6.0, cos(uTime) * 5.0, 0.0), lightColor, 4.0);
 	pointLight[3] lights;
 	lights[0] = light1;
 
 	// calculate lighting
 	vec4 litColor = calcLighting(lights, vVertexPos, vNormal.xyz, vEyePos.xyz);
+	
 	rtFragColor = litColor;
 }
