@@ -10,7 +10,6 @@ uniform float uTime;
 // varyings
 out vec4 vNormal;
 out vec4 vVertexPos;
-out vec4 vPosClip;
 
 void main()
 {
@@ -19,6 +18,7 @@ void main()
 	posWorld.x += sin(uTime * 2.0) * posWorld.y * 0.08;
 	posWorld.z += cos(uTime * 2.0) * posWorld.y * 0.08;
 	posWorld.y += sin(uTime * 1.0) * posWorld.y * 0.1;
+	
 	// convert to clip-space
 	gl_Position = uProjMat * uViewMat * posWorld;
 	
@@ -26,7 +26,5 @@ void main()
 	mat3 normalMat = inverse(transpose(mat3(uModelMat)));
 	vNormal = vec4(normalMat * aNormal, 0.0);
 	vVertexPos = posWorld;
-	//vEyePos = vec4(eyePosition, 0.0);
 	
-	vPosClip = gl_Position;
 }

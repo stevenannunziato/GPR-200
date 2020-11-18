@@ -59,9 +59,7 @@ vec2 ripple(in vec2 originalLocation)
 
 void main()
 {
-	// calculate uv
-	//vec2 uv = gl_FragCoord.xy / uResolution;
-	
+	// calculate uv with
 	// manual perspective divide
 	vec4 posNDC = vPosClip / vPosClip.w; // [-1, 1]
 	vec4 posScreen = posNDC * 0.5 + 0.5; // [0, 1]
@@ -83,9 +81,6 @@ void main()
     col = hueShift(col.xyz, dist * 2.0 + uTime * 0.5);
     col.a = alpha;
 
-	// test and display
-	//rtFragColor = vec4(1.0, 0.5, 0.0, 1.0);
-	//rtFragColor = vec4(uv, 0.0, 1.0);
 	rtFragColor = col;
-	//rtFragColor = vPosClip;
+	
 }

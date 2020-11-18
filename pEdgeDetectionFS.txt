@@ -27,13 +27,8 @@ void main()
 	// calculate uv and sampler
 	//vec2 uv = gl_FragCoord.xy / uResolution;
 	vec2 uv = vTexCoord * 0.5 + 0.5;
-	//vec4 col = texture(uTex, uv);
-
-	// test
-	//rtFragColor = vec4(1.0, 0.5, 0.0, 1.0);
-	//rtFragColor = vec4(uv, 1.0, 1.0);
-	//rtFragColor = col;
 	
+	// adapted from here:
 	// https://www.shadertoy.com/view/wsGXRm
 	vec2 p = gl_FragCoord.xy;
     
@@ -55,16 +50,13 @@ void main()
     gy +=  2.0 * lookup(p,  0.0,  1.0);
     gy +=  1.0 * lookup(p,  1.0,  1.0);
     
-	// hack: use g^2 to conceal noise in the video
+	// hack: use g^2 to conceal noise
     float g = gx*gx + gy*gy;
     float g2 = g * 0.5;
     
     // determine final outline color
-    vec4 sobelColor = vec4(g2, 0.0, 0.0, 0.99);
-    // add sobel on top of sampled image from scene pass
-    vec4 col = texture(uTex, uv);
-    col = sobelColor;
+    vec4 sobelColor = vec4(g2, 0.0, 0.0, 0.9);
     
-    rtFragColor = col;
+    rtFragColor = sobelColor;
 	
 }
