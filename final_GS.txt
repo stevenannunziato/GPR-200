@@ -1,8 +1,6 @@
 #version 330 core
 
-uniform float uTime;
-
-layout (triangles) in;
+layout (points) in;
 layout (triangle_strip, max_vertices = 12) out;
 
 uniform mat4 projMat;
@@ -10,6 +8,7 @@ uniform mat4 projMat;
 in vec4 color[];
 
 out vec4 finalColor;
+out vec2 texCoord;
 
 // information from here:
 // https://learnopengl.com/Advanced-OpenGL/Geometry-Shader
@@ -20,7 +19,7 @@ void main()
 	//finalColor = vec4(1.0);
 	
 	// quad attributes
-	float quadSize = 0.2;
+	float quadSize = 1.0;
 	
 	/*gl_Position = projMat * (position + vec4(-quadSize, -quadSize, 0.0, 0.0));    // 1:bottom-left
     EmitVertex();   
@@ -46,20 +45,3 @@ void main()
     EndPrimitive();
 	
 }
-
-void GenerateLine(int i)
-{
-    gl_Position = gl_in[i].gl_Position;
-    EmitVertex();
-    gl_Position = gl_in[i].gl_Position + vec4(1.0) * MAGNITUDE * (sin(uTime) + 2.0);
-    EmitVertex();
-    
-    EndPrimitive();
-}
-
-/*void main()
-{
-    GenerateLine(0); // first vertex normal
-    //GenerateLine(1); // second vertex normal
-    //GenerateLine(2); // third vertex normal
-}*/

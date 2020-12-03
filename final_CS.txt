@@ -1,25 +1,59 @@
 #version 450
 
+uniform float uTime;
+
+// hueshift function adapted from user mAlk:
+// https://www.shadertoy.com/view/MsjXRt
+vec4 hueshift(in vec3 Color, in float Shift)
+{
+    vec3 P = vec3(0.55735) * dot(vec3(0.55735), Color);
+    vec3 U = Color - P;
+    vec3 V = cross(vec3(0.55735), U);
+    
+    Color = U * cos(Shift * 6.2832) + V * sin(Shift * 6.2832) + P;
+    return vec4(Color, 1.0);
+}
+
 // going off of here so far:
 // https://developer.arm.com/documentation/100587/0100/compute-shaders/compute-shaders-example
-struct ParticleData
+struct SimulationData
 {
 		vec4 position;
         vec4 velocity;
 };
 
+struct VertexDisplayData
+{
+		vec4 position;
+        vec4 color;
+};
+
+// buffer for managing particles in VS
 layout(std430, binding = 0) writeonly buffer destBuffer
 {
-        ParticleData data[];
+        VertexDisplayData data[];
 } ParticleOut;
 
-layout (local_size_x = 16, local_size_y = 1, local_size_z = 1) in;
+// 
+layout(std430, binding = 1) buffer calcBuffer
+{
+        SimulationData data[];
+} ParticleCalc;
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 void main()
 {
 	
 	uint storePos = gl_GlobalInvocationID.x;
 	
-	ParticleOut.data[storePos].velocity = vec4(1.0, 1.0, 1.0, 1.0);
-	ParticleOut.data[storePos].position = vec4(storePos * 3, storePos, 0.0, 1.0);
+	//ParticleOut.data[storePos].velocity = vec4(1.0, 1.0, 1.0, 1.0);
+	float t = mod((uTime * 3.0) + storePos, 30.0);
+	float x = t * sin(t * 1.0);
+	float y = t;
+	float z = t * cos(t * 1.0);
+	ParticleOut.data[storePos].position = vec4(x, y, z, 1.0);
+	
+	// color
+	ParticleOut.data[storePos].color = hueshift(vec3(1.0, 0.0, 0.0), t * 0.02 + uTime * 0.1);
 }
