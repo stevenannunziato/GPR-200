@@ -42,18 +42,35 @@ layout(std430, binding = 1) buffer calcBuffer
 
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
+// Apply velocity to a particle's position
+void calculatePosition(in vec4 inPosition, in vec4 velocity, out vec4 outPosition)
+{
+	
+	outPosition = vec4(inPosition.xyz + velocity.xyz, inPosition.w);
+	
+}
+
 void main()
 {
 	
+	// get simulation data from last frame
 	uint storePos = gl_GlobalInvocationID.x;
 	
+	// simulate each particle one more step
+	calculatePosition(ParticleCalc.data[storePos].position, ParticleCalc.data[storePos].velocity, ParticleCalc.data[storePos].position);
+	
+	// write particle position and color to output buffer
+	
+	
+	
+	
 	//ParticleOut.data[storePos].velocity = vec4(1.0, 1.0, 1.0, 1.0);
-	float t = mod((uTime * 3.0) + storePos, 30.0);
-	float x = t * sin(t * 1.0);
-	float y = t;
-	float z = t * cos(t * 1.0);
-	ParticleOut.data[storePos].position = vec4(x, y, z, 1.0);
+	float t = mod((uTime * 1.0) + storePos, 250.0);
+	/*float x = t * sin(t * 1.0) * 0.05;
+	float y = t * 0.06;
+	float z = t * cos(t * 1.0) * 0.05;
+	ParticleOut.data[storePos].position = vec4(x, y, z, 1.0);*/
 	
 	// color
-	ParticleOut.data[storePos].color = hueshift(vec3(1.0, 0.0, 0.0), t * 0.02 + uTime * 0.1);
+	ParticleOut.data[storePos].color = hueshift(vec3(1.0, 0.0, 0.0), t * 0.002 + uTime * 0.2);
 }
