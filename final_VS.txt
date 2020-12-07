@@ -7,9 +7,8 @@ uniform mat4 projMat;
 layout (location = 0) in vec4 aParticlePos;
 layout (location = 1) in vec4 aParticleColor;
 
-//attribute vec4 aParticlePos;
-
 out vec4 color;
+
 
 void main() {
    

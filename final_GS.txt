@@ -22,33 +22,21 @@ void main()
 	
 	// quad attributes
 	float aspectRatio = uResolution.y / uResolution.x;
-	float quadSize = 0.2;
-	
-	/*gl_Position = projMat * (position + vec4(-quadSize, -quadSize, 0.0, 0.0));    // 1:bottom-left
-    EmitVertex();   
-    gl_Position = projMat * (position + vec4(+quadSize, -quadSize, 0.0, 0.0));    // 2:bottom-right
-    EmitVertex();
-    gl_Position = projMat * (position + vec4(-quadSize,  +quadSize, 0.0, 0.0));    // 3:top-left
-    EmitVertex();
-    gl_Position = projMat * (position + vec4(+quadSize,  +quadSize, 0.0, 0.0));    // 4:top-right
-    EmitVertex();
+	vec2 quadSize = vec2(0.2, 0.3);
     
-    EndPrimitive();*/
-    
-    
-    gl_Position = position + vec4(-quadSize * aspectRatio, -quadSize, 0.0, 0.0);    // 1:bottom-left
+    gl_Position = position + vec4(-quadSize.x * aspectRatio, -quadSize.y, 0.0, 0.0);    // 1:bottom-left
     texCoord = vec2(0.0, 0.0);
     EmitVertex();
     
-    gl_Position = position + vec4(quadSize * aspectRatio, -quadSize, 0.0, 0.0);    // 2:bottom-right
+    gl_Position = position + vec4(quadSize.x * aspectRatio, -quadSize.y, 0.0, 0.0);    // 2:bottom-right
     texCoord = vec2(1.0, 0.0);
     EmitVertex();
     
-    gl_Position = position + vec4(-quadSize * aspectRatio, quadSize, 0.0, 0.0);    // 3:top-left
+    gl_Position = position + vec4(-quadSize.x * aspectRatio, quadSize.y, 0.0, 0.0);    // 3:top-left
     texCoord = vec2(0.0, 1.0);
     EmitVertex();
     
-    gl_Position = position + vec4(quadSize * aspectRatio, quadSize, 0.0, 0.0);    // 4:top-right
+    gl_Position = position + vec4(quadSize.x * aspectRatio, quadSize.y, 0.0, 0.0);    // 4:top-right
     texCoord = vec2(1.0, 1.0);
     EmitVertex();
     

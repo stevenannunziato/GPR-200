@@ -1,0 +1,18 @@
+#version 330
+
+in vec2 vTexCoord;
+
+layout (location = 0) out vec4 rtFragColor;
+
+uniform sampler2D uRenderTex;
+
+void main() {
+
+	rtFragColor = texture(uRenderTex, vTexCoord * 0.5 + 0.5);
+	
+//	uRenderTex
+	
+	//rtFragColor = texColor.aaaa;
+	//rtFragColor = vec4(1.0);
+	
+}
