@@ -3,27 +3,26 @@
 uniform float uTime;
 uniform float uDeltaTime;
 
-// going off of here so far:
-// https://developer.arm.com/documentation/100587/0100/compute-shaders/compute-shaders-example
+// structure for position last frame
 struct SimulationData
 {
 		vec4 position;
-        vec4 velocity;
 };
 
+// structure for displaying output of each particle
 struct VertexDisplayData
 {
 		vec4 position;
         vec4 color;
 };
 
-// buffer for managing particles in VS
+// buffer for managing particles in VS output
 layout(std430, binding = 0) writeonly buffer destBuffer
 {
         VertexDisplayData data[];
 } ParticleOut;
 
-// 
+// buffer for simulating particles
 layout(std430, binding = 1) buffer calcBuffer
 {
         SimulationData data[];
@@ -45,8 +44,9 @@ vec4 hueshift(in vec3 Color, in float Shift)
     return vec4(Color, 1.0);
 }
 
+// random function adapted from here:
 // https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
-float rand(vec2 co){
+float rand(vec2 co) {
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
@@ -63,9 +63,13 @@ vec3 random3(vec3 c) {
 	r.y = fract(512.0*j);
 	return r-0.5;
 }
+
 /* skew constants for 3d simplex functions */
 const float F3 =  0.3333333;
 const float G3 =  0.1666667;
+
+// simplex noise adapted from here:
+// https://www.shadertoy.com/view/XsX3zB
 /* 3d simplex noise */
 float simplex3d(vec3 p) {
 	 /* 1. find current tetrahedron T and it's four vertices */
@@ -112,83 +116,78 @@ float simplex3d(vec3 p) {
 	 /* 3. return the sum of the four surflets */
 	 return dot(d, vec4(52.0));
 }
-/* const matrices for 3d rotation */
-const mat3 rot1 = mat3(-0.37, 0.36, 0.85,-0.14,-0.93, 0.34,0.92, 0.01,0.4);
-const mat3 rot2 = mat3(-0.55,-0.39, 0.74, 0.33,-0.91,-0.24,0.77, 0.12,0.63);
-const mat3 rot3 = mat3(-0.71, 0.52,-0.47,-0.08,-0.72,-0.68,-0.7,-0.45,0.56);
-/* directional artifacts can be reduced by rotating each octave */
-float simplex3d_fractal(vec3 m) {
-    return   0.5333333*simplex3d(m*rot1)
-			+0.2666667*simplex3d(2.0*m*rot2)
-			+0.1333333*simplex3d(4.0*m*rot3)
-			+0.0666667*simplex3d(8.0*m);
-}
 
 // returns a vec3 with pseudo-random noise function
-vec4 customNoise(in vec4 point)
+vec4 simplexNoise(in vec4 point, in float scrollSpeed, in float frequency, in vec3 intensity)
 {
-	float x = simplex3d(point.xyz);
-	float y = simplex3d(point.xyz + 15.2);
-	float z = simplex3d(point.xyz + 4.8);
-	return vec4(x, y, z, point.w);
+	// generate a value noise from 3D input
+	vec3 noise = vec3(simplex3d(point.xyz * frequency + scrollSpeed * uTime));
+	
+	// scale output based on intensity
+	noise *= intensity;
+	
+	// finalize output
+	return vec4(vec3(noise), point.w);
 }
 
 
 // simulation functions -------------------------------------------------------------------------------
 
-void checkLifetime(inout vec4 prevPos, inout vec4 prevVel, in uint index) {
+void checkLifetime(inout vec4 prevPos, inout vec4 prevVel, in uint index, in vec3 defaultPosition, out float r) {
 
-	float maxLifetime = 5.0;
-	float r = rand(vec2(index)) * 20.0;
+	// define a max lifetime
+	float maxLifetime = 6.0;
+	// define pseudo-random value [0, maxLifetime - 1)
+	r = rand(vec2(index)) * 20;
+	r = mod(r, maxLifetime - 1.0);
 	
-	/*float t = index;
-	float c1 = 7.0;
-	float c2 = 9.0;
-	float c3 = 6.0;
-	float x = sin(c3 * t) * cos(c1 * t);
-	float y = sin(c1 * t) * cos(c3 * t);
-	float z = sin(c2 * t) * cos(c1 * t);
-	vec3 defaultPosition = vec3(x, y, z);*/
-	//vec3 defaultPosition = vec3(cos(index) * 2.0, 0.0, sin(index) * 2.0);
-	//vec3 defaultPosition = vec3(r * 0.1);
-	vec3 defaultPosition = vec3(cos(index), 0.0, sin(index));
-	
-	
+	// increment lifetime
 	prevPos.w += uDeltaTime;
-	if (prevPos.w > maxLifetime + r) {
+	if (prevPos.w > maxLifetime) {
 		// reset particle
-		prevPos = vec4(defaultPosition, r);
+		prevPos = vec4(defaultPosition, r); // r is an offset to ensure asynchronous spawning
 		prevVel = vec4(0.0);
 	}
-	
 }
 
-// vector field for calculating particle velocity
+// vector field for explosion
 vec4 radialVectorField(in vec4 inPos)
 {
-	
+	// pass through unit vector field
 	vec4 result = inPos;
 	return result;
-
 }
-// vector field for calculating particle velocity
+// vector field for flame effect
 vec4 flameVectorField(in vec4 inPos)
 {
+	// attributes
+	float inwardForce = 0.03;
+	float upwardForce = 1.2;
 	
-	float x = -inPos.x * inPos.y;
-	float y = 2.0;
-	float z = -inPos.z * inPos.y;
+	// paramaterize output
+	float x = -inPos.x * inPos.y * inwardForce;
+	float y = upwardForce;
+	float z = -inPos.z * inPos.y * inwardForce;
 	
+	// finalize output
 	return vec4(x, y, z, inPos.w);
-
+}
+// vector field for explosion
+vec4 flowVectorField(in vec4 inPos)
+{
+	// paramaterize output
+	float x = sin(inPos.z * 0.2) + 0.6;
+	float y = sin(inPos.z * 0.3) * 2.0;
+	float z = 5.2;
+	
+	// finalize output
+	return vec4(x, y, z, inPos.w);
 }
 
 // Apply velocity to a particle's position
 void calculatePosition(in vec4 inPosition, inout vec4 velocity, out vec4 outPosition)
 {
-	
 	outPosition = vec4(inPosition.xyz + velocity.xyz, inPosition.w);
-	
 }
 
 void main()
@@ -201,19 +200,41 @@ void main()
 	
 	// get simulation data from last frame
 	vec4 prevPos = ParticleCalc.data[storePos].position;
-	vec4 prevVel = ParticleCalc.data[storePos].velocity;
+	//vec4 prevVel = ParticleCalc.data[storePos].velocity;
+	vec4 prevVel;
 	vec4 newPos;
 	
-	// handle particle lifetime
-	checkLifetime(prevPos, prevVel, storePos);
+	// PARTICLE EFFECT PROPERTIES
+	float particleSpeed = 0.015;
 	
-	// set new velocity and position
-	// set velocity based on vector field
-	prevVel = flameVectorField(prevPos) * 0.002;
+	// default emission shape
+	// circle
+	//vec3 defaultPosition = vec3(cos(storePos) * 3.0, 0.0, sin(storePos) * 3.0);
+	// spiral
+	vec3 defaultPosition = vec3(0.005 * float(storePos) * cos(storePos), 0.0, 0.005 * float(storePos) * sin(storePos));
+	// line on x-axis
+	//vec3 defaultPosition = vec3(float(storePos) * 0.03, 0.0, 0.0);
+	
+	// noise properties
+	float scrollSpeed = 0.2;
+	float frequency = 0.3;
+	//vec3 intensity = vec3(prevPos.x * 0.001 + prevPos.z * 0.003, 0.0, 0.0);
+	vec3 intensity = vec3(0.025, prevPos.y * 0.002, 0.025);
+	//vec3 intensity = vec3(prevPos.y * 0.001 + 0.01, prevPos.y * 0.003, prevPos.y * 0.001 + 0.01);
+		
+	// handle particle lifetime
+	float randValue;
+	checkLifetime(prevPos, prevVel, storePos, defaultPosition, randValue);
+	float lifetime = prevPos.w - randValue;
+	
+	// pick a vector field
+	//prevVel = flowVectorField(prevPos) * particleSpeed;
+	prevVel = flameVectorField(prevPos) * particleSpeed;
+	//prevVel = radialVectorField(prevPos) * particleSpeed;
+	
 	// add noise to velocity
-	prevVel += customNoise(prevPos) * vec4(0.005, 0.005, 0.005, 1.0);
-	// ensure w component is 1
-	ParticleCalc.data[storePos].velocity.w = 1.0;
+	prevVel += simplexNoise(prevPos, scrollSpeed, frequency, intensity);
+
 	// add velocity to position
 	calculatePosition(prevPos, prevVel, newPos);
 	ParticleCalc.data[storePos].position = newPos;
@@ -221,10 +242,16 @@ void main()
 	// write particle position and color to output buffer -----------------------------------
 	ParticleOut.data[storePos].position = ParticleCalc.data[storePos].position;
 	
-	//ParticleOut.data[storePos].velocity = vec4(1.0, 1.0, 1.0, 1.0);
-	float t = mod((uTime * 1.0) + storePos, 250.0);
-
-	
 	// color
-	ParticleOut.data[storePos].color = hueshift(vec3(1.0, 0.0, 0.0), t * 0.0005);
+	float t = mod((uTime * 1.0) + storePos, 250.0);
+	
+	float lightness = 0.125;
+	//ParticleOut.data[storePos].color = hueshift(vec3(1.0, lightness, lightness), t * 0.0005);
+	//ParticleOut.data[storePos].color = hueshift(vec3(1.0, 0.0, 0.0), prevPos.z * 0.007 + 0.7);
+	//ParticleOut.data[storePos].color = vec4(1.0);
+	
+	float midDist = distance(prevPos, vec4(0.0, prevPos.y, 0.0, prevPos.w));
+	vec4 midColor = hueshift(vec3(1.0, lightness, lightness), midDist * -0.03 + 0.15);
+	vec4 lifeColor = hueshift(vec3(1.0, lightness, lightness), lifetime * 0.03);
+	ParticleOut.data[storePos].color = mix(midColor, lifeColor, 0.3);
 }

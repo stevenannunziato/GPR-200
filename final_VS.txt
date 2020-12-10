@@ -1,22 +1,26 @@
 #version 330
 
+// uniforms
 uniform mat4 matVP;
 uniform mat4 matGeo;
 uniform mat4 projMat;
 
+// attributes
 layout (location = 0) in vec4 aParticlePos;
 layout (location = 1) in vec4 aParticleColor;
 
+// varyings
 out vec4 color;
+out float lifetime;
 
 
 void main() {
    
-   //gl_Position = matVP * matGeo * vec4(pos, 1);
-   //gl_Position = vec4(pos, 1);
-   vec4 realPos = vec4(aParticlePos.xyz, 1.0);
-   gl_Position = matVP * matGeo * realPos;
-   //gl_Position = pos;
-   //gl_Position = vec4(0.0, 0.0, -5.0, 1.0);
-   color = aParticleColor;
+   	// pass clip-space coordinate of particle to geometry shader
+   	vec4 realPos = vec4(aParticlePos.xyz, 1.0);
+   	gl_Position = matVP * matGeo * realPos;
+
+	// set varyings
+	lifetime = aParticlePos.w;
+   	color = aParticleColor;
 }

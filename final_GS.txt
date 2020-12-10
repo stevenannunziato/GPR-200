@@ -7,8 +7,9 @@ layout (triangle_strip, max_vertices = 12) out;
 uniform mat4 projMat;
 uniform vec2 uResolution;
 
+// varyings
 in vec4 color[];
-
+in float lifetime[];
 out vec4 finalColor;
 out vec2 texCoord;
 
@@ -16,27 +17,35 @@ out vec2 texCoord;
 // https://learnopengl.com/Advanced-OpenGL/Geometry-Shader
 void main()
 {
+	// initialize variables
 	vec4 position = gl_in[0].gl_Position;
 	finalColor = color[0];
-	//finalColor = vec4(1.0);
+	float invMaxLifetime = 0.166666;
 	
 	// quad attributes
 	float aspectRatio = uResolution.y / uResolution.x;
-	vec2 quadSize = vec2(0.2, 0.3);
+	vec2 quadSize = vec2(0.7, 0.7);
+	
+	// decrease size over lifetime
+	quadSize *= (7.0 - lifetime[0]) * invMaxLifetime;
     
-    gl_Position = position + vec4(-quadSize.x * aspectRatio, -quadSize.y, 0.0, 0.0);    // 1:bottom-left
+    // 1:bottom-left
+    gl_Position = position + vec4(-quadSize.x * aspectRatio, -quadSize.y, 0.0, 0.0);    
     texCoord = vec2(0.0, 0.0);
     EmitVertex();
     
-    gl_Position = position + vec4(quadSize.x * aspectRatio, -quadSize.y, 0.0, 0.0);    // 2:bottom-right
+    // 2:bottom-right
+    gl_Position = position + vec4(quadSize.x * aspectRatio, -quadSize.y, 0.0, 0.0);    
     texCoord = vec2(1.0, 0.0);
     EmitVertex();
     
-    gl_Position = position + vec4(-quadSize.x * aspectRatio, quadSize.y, 0.0, 0.0);    // 3:top-left
+    // 3:top-left
+    gl_Position = position + vec4(-quadSize.x * aspectRatio, quadSize.y, 0.0, 0.0);    
     texCoord = vec2(0.0, 1.0);
     EmitVertex();
     
-    gl_Position = position + vec4(quadSize.x * aspectRatio, quadSize.y, 0.0, 0.0);    // 4:top-right
+    // 4:top-right
+    gl_Position = position + vec4(quadSize.x * aspectRatio, quadSize.y, 0.0, 0.0);    
     texCoord = vec2(1.0, 1.0);
     EmitVertex();
     
